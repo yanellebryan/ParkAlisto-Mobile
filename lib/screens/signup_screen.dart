@@ -29,7 +29,7 @@ class _SignupScreenState extends State<SignupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Please fill in all fields'),
-          backgroundColor: AppTheme.error,
+          backgroundColor: AppTheme.destructiveLight,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -55,7 +55,7 @@ class _SignupScreenState extends State<SignupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString()),
-          backgroundColor: AppTheme.error,
+          backgroundColor: AppTheme.destructiveLight,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -185,7 +185,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.textPrimary.withValues(alpha: AppTheme.textOpacitySecondary),
                                     ),
                                     onPressed: () {
                                       setState(() => _obscurePassword = !_obscurePassword);
