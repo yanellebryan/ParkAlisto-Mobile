@@ -19,4 +19,33 @@ class Booking {
     required this.durationHours,
     this.status = 'active',
   });
+
+  /// Create a Booking from a Supabase JSON row (with joined location & spot)
+  factory Booking.fromJson(Map<String, dynamic> json) {
+    return Booking(
+      id: json['id'] as String,
+      location: ParkingLocation.fromJson(
+        json['parking_locations'] as Map<String, dynamic>,
+      ),
+      spot: ParkingSpot.fromJson(
+        json['parking_spots'] as Map<String, dynamic>,
+      ),
+      dateTime: DateTime.parse(json['booking_date'] as String),
+      durationHours: json['duration_hours'] as int,
+      status: json['status'] as String,
+    );
+  }
+
+  /// Convert to JSON for Supabase insert (references only IDs)
+  Map<String, dynamic> toJson(String userId) {
+    return {
+      'user_id': userId,
+      'location_id': location.id,
+      'spot_id': spot.id,
+      'booking_date': dateTime.toIso8601String(),
+      'duration_hours': durationHours,
+      'total_price': totalPrice,
+      'status': status,
+    };
+  }
 }

@@ -25,6 +25,35 @@ class ParkingLocation {
     this.spots = const [],
   });
 
+  /// Create a ParkingLocation from a Supabase JSON row
+  factory ParkingLocation.fromJson(Map<String, dynamic> json) {
+    return ParkingLocation(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      address: json['address'] as String,
+      district: json['district'] as String,
+      pricePerHour: (json['price_per_hour'] as num).toDouble(),
+      totalSpots: json['total_spots'] as int,
+      availableSpots: json['available_spots'] as int,
+      category: json['category'] as String,
+      rating: (json['rating'] as num).toDouble(),
+    );
+  }
+
+  /// Convert to JSON for Supabase insert/update
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'address': address,
+      'district': district,
+      'price_per_hour': pricePerHour,
+      'total_spots': totalSpots,
+      'available_spots': availableSpots,
+      'category': category,
+      'rating': rating,
+    };
+  }
+
   ParkingLocation copyWith({
     String? id,
     String? name,
