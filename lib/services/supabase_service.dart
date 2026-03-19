@@ -131,4 +131,18 @@ class SupabaseService {
 
   /// Get current user ID
   String? get currentUserId => _client.auth.currentUser?.id;
+
+  /// Get current user's full name from metadata
+  String get userName {
+    final user = _client.auth.currentUser;
+    if (user == null) return 'Guest';
+    return user.userMetadata?['full_name'] ?? 'Guest';
+  }
+
+  /// Get current user's email
+  String get userEmail {
+    final user = _client.auth.currentUser;
+    if (user == null) return '';
+    return user.email ?? '';
+  }
 }

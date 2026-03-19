@@ -13,8 +13,9 @@ class MapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
     final theme = Theme.of(context);
-    final locations = MockData.parkingLocations;
+    final locations = appState.filteredLocations;
 
     return DynamicMeshBackground(
       child: SafeArea(
@@ -71,10 +72,21 @@ class MapScreen extends StatelessWidget {
                         }),
 
                         // Pin cards
-                        _buildPinCard(context, locations[0], 0.15, 0.2),
-                        _buildPinCard(context, locations[1], 0.55, 0.15),
-                        _buildPinCard(context, locations[2], 0.3, 0.55),
-                        _buildPinCard(context, locations[3], 0.65, 0.7),
+                        ...locations.asMap().entries.take(4).map((entry) {
+                          final pinPositions = [
+                            {'left': 0.15, 'top': 0.2},
+                            {'left': 0.55, 'top': 0.15},
+                            {'left': 0.3, 'top': 0.55},
+                            {'left': 0.65, 'top': 0.7},
+                          ];
+                          final i = entry.key;
+                          final loc = entry.value;
+                          return _buildPinCard(
+                              context,
+                              loc,
+                              pinPositions[i]['left']!,
+                              pinPositions[i]['top']!);
+                        }),
                       ],
                     ),
                   ),

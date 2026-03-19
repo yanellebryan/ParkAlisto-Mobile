@@ -21,13 +21,20 @@ class _HomeScreenState extends State<HomeScreen> {
   String _sortMode = 'none'; // 'price', 'rating', 'availability'
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().loadLocations();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appState = context.watch<AppState>();
 
     // Filter locations by category + search
-    List<ParkingLocation> locations = MockData.parkingLocations
-        .where((loc) => loc.category == appState.selectedCategory)
+    List<ParkingLocation> locations = appState.filteredLocations
         .where((loc) {
       if (_searchQuery.isEmpty) return true;
       final q = _searchQuery.toLowerCase();
@@ -110,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 32),
 
               // Greeting
-              Text('Hello, Juan! 👋',
+              Text('Hello, ${appState.userName}! 👋',
                   style: theme.textTheme.headlineMedium),
               const SizedBox(height: 8),
               Text(
@@ -163,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           Icons.directions_car,
                           'Car',
-                          '${MockData.parkingLocations.where((l) => l.category == 'car').length} places',
+                          '${appState.filteredLocations.length} places',
                           appState.selectedCategory == 'car',
                           'car')),
                   const SizedBox(width: 12),
@@ -172,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           Icons.two_wheeler,
                           'Motorcycle',
-                          '${MockData.parkingLocations.where((l) => l.category == 'motorcycle').length} places',
+                          '${appState.filteredLocations.length} places',
                           appState.selectedCategory == 'motorcycle',
                           'motorcycle')),
                   const SizedBox(width: 12),
@@ -181,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           Icons.local_shipping,
                           'Truck',
-                          '${MockData.parkingLocations.where((l) => l.category == 'truck').length} places',
+                          '${appState.filteredLocations.length} places',
                           appState.selectedCategory == 'truck',
                           'truck')),
                 ],
@@ -210,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   clipBehavior: Clip.none,
-                  children: MockData.recentPlaces
+                  children: appState.filteredLocations.take(3)
                       .map((loc) => _buildRecentPlaceCard(context, loc))
                       .toList(),
                 ),

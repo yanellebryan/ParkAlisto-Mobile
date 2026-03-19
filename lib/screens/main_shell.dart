@@ -34,7 +34,12 @@ class MainShell extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         child: BottomNavigationBar(
           currentIndex: appState.bottomNavIndex,
-          onTap: (index) => appState.setBottomNavIndex(index),
+          onTap: (index) {
+            if (index == 2) {
+              appState.loadBookings();
+            }
+            appState.setBottomNavIndex(index);
+          },
           elevation: 0,
           backgroundColor: Colors.transparent,
           type: BottomNavigationBarType.fixed,

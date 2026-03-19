@@ -21,6 +21,10 @@ class AppState extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
+  // ── User Info ─────────────────────────────────────────────
+  String get userName => _supabase.userName;
+  String get userEmail => _supabase.userEmail;
+
   // ── Filtered locations by category ────────────────────────
   List<ParkingLocation> get filteredLocations {
     if (_locations.isEmpty) {

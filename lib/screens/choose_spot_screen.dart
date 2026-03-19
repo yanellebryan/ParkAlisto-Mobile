@@ -32,7 +32,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
     }
 
     // Split spots into 3 "floors"
-    final allSpots = location.spots;
+    final allSpots = appState.currentSpots.isNotEmpty ? appState.currentSpots : location.spots;
     final spotsPerFloor = (allSpots.length / 3).ceil();
     final floorSpots = <List<ParkingSpot>>[];
     for (int i = 0; i < 3; i++) {

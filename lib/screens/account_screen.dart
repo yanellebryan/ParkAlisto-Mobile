@@ -12,6 +12,7 @@ class AccountScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
     final theme = Theme.of(context);
 
     return DynamicMeshBackground(
@@ -30,10 +31,10 @@ class AccountScreen extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: AppTheme.brandGreen,
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'JD',
-                    style: TextStyle(
+                    appState.userName.isNotEmpty ? appState.userName[0].toUpperCase() : 'U',
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -42,10 +43,10 @@ class AccountScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('Juan dela Cruz',
+              Text(appState.userName,
                   style: theme.textTheme.headlineMedium?.copyWith(fontSize: 22)),
               const SizedBox(height: 4),
-              Text('juan@parkalisto.com',
+              Text(appState.userEmail,
                   style: theme.textTheme.bodyMedium),
               const SizedBox(height: 32),
 
