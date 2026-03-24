@@ -36,6 +36,7 @@ class MockData {
       availableSpots: 10,
       category: 'car',
       rating: 4.5,
+      logoPath: null,
       spots: _generateSpots(24, [0,1,3,4,5,7,8,10,12,13,15,17,19,21]),
     ),
     ParkingLocation(
@@ -48,6 +49,7 @@ class MockData {
       availableSpots: 12,
       category: 'car',
       rating: 4.8,
+      logoPath: 'assets/images/Ayala_Malls_Logo.png',
       spots: _generateSpots(30, [0,1,2,4,5,6,8,9,11,13,14,16,17,19,20,22,24,26]),
     ),
     ParkingLocation(
@@ -60,6 +62,7 @@ class MockData {
       availableSpots: 8,
       category: 'motorcycle',
       rating: 4.2,
+      logoPath: null,
       spots: _generateSpots(20, [0,2,3,4,6,7,9,10,12,14,16,18]),
     ),
     ParkingLocation(
@@ -72,7 +75,34 @@ class MockData {
       availableSpots: 5,
       category: 'truck',
       rating: 4.0,
+      logoPath: 'assets/images/SM Logo.png',
       spots: _generateSpots(12, [0,1,3,5,6,8,10]),
+    ),
+    ParkingLocation(
+      id: 'loc_5',
+      name: 'Robinsons Place Parking',
+      address: 'Lacson Street, Bacolod City',
+      district: 'Robinsons',
+      pricePerHour: 50,
+      totalSpots: 18,
+      availableSpots: 7,
+      category: 'car',
+      rating: 4.6,
+      logoPath: 'assets/images/Robinsons logo.png',
+      spots: _generateSpots(18, [0,2,4,6,8,10,12]),
+    ),
+    ParkingLocation(
+      id: 'loc_6',
+      name: 'University of St. La Salle',
+      address: 'La Salle Avenue, Bacolod City',
+      district: 'USLS',
+      pricePerHour: 20,
+      totalSpots: 45,
+      availableSpots: 28,
+      category: 'car',
+      rating: 4.7,
+      logoPath: 'assets/images/USLS_Logo.png',
+      spots: _generateSpots(45, [1,4,5,8,10,12,15,18,20,22,25,28,30,32,35,38,40]),
     ),
   ];
 

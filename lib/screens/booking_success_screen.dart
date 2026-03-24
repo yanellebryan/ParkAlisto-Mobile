@@ -7,7 +7,7 @@ import '../widgets/glass_button.dart';
 import '../widgets/dynamic_mesh_background.dart';
 
 class BookingSuccessScreen extends StatefulWidget {
-  final String spotId;
+  final String spotLabel;
   final String locationName;
   final int durationHours;
   final double totalPrice;
@@ -15,7 +15,7 @@ class BookingSuccessScreen extends StatefulWidget {
 
   const BookingSuccessScreen({
     Key? key,
-    required this.spotId,
+    required this.spotLabel,
     required this.locationName,
     required this.durationHours,
     required this.totalPrice,
@@ -93,7 +93,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
                       children: [
                         _detailRow(context, 'Location', widget.locationName),
                         const SizedBox(height: 12),
-                        _detailRow(context, 'Spot', widget.spotId),
+                        _detailRow(context, 'Spot', widget.spotLabel),
                         const SizedBox(height: 12),
                         _detailRow(
                             context, 'Duration', '${widget.durationHours}h'),

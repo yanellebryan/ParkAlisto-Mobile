@@ -27,13 +27,37 @@ class AppState extends ChangeNotifier {
 
   // ── Filtered locations by category ────────────────────────
   List<ParkingLocation> get filteredLocations {
-    if (_locations.isEmpty) {
-      // Fallback to mock data while Supabase loads or if offline
-      return MockData.parkingLocations
-          .where((loc) => loc.category == selectedCategory)
-          .toList();
+    final mockMatches = MockData.parkingLocations
+        .where((loc) => loc.category == selectedCategory)
+        .toList();
+
+    // Aggressive deduplication by normalized name
+    String normalize(String name) {
+      final n = name.toLowerCase();
+      if (n.contains('ayala')) return 'ayala';
+      if (n.contains('sm city') || n.contains('sm mall')) return 'sm';
+      if (n.contains('robinson')) return 'robinsons';
+      if (n.contains('la salle') || n.contains('usls')) return 'usls';
+      return n;
     }
-    return _locations;
+
+    // Start with mock data (the "new versions" the user wants)
+    final Map<String, ParkingLocation> uniqueByNormalizedName = {};
+    for (var loc in mockMatches) {
+      uniqueByNormalizedName[normalize(loc.name)] = loc;
+    }
+
+    // Add Supabase data ONLY if we don't already have a mock equivalent
+    if (_locations.isNotEmpty) {
+      for (var loc in _locations) {
+        final norm = normalize(loc.name);
+        if (!uniqueByNormalizedName.containsKey(norm)) {
+          uniqueByNormalizedName[norm] = loc;
+        }
+      }
+    }
+
+    return uniqueByNormalizedName.values.toList();
   }
 
   // ── Spots for the selected location ───────────────────────
@@ -60,11 +84,18 @@ class AppState extends ChangeNotifier {
 
   // ── Load spots for a location ─────────────────────────────
   Future<void> loadSpots(String locationId) async {
+    if (locationId.startsWith('loc_')) {
+      _spots = []; // Use local mock spots from the location object
+      notifyListeners();
+      return;
+    }
     try {
       _spots = await _supabase.getSpotsForLocation(locationId);
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading spots: $e');
+      _spots = [];
+      notifyListeners();
     }
   }
 

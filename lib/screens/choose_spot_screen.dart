@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme.dart';
 import '../services/app_state.dart';
+import '../models/parking_location.dart';
 import '../models/parking_spot.dart';
 import '../widgets/car_placeholder.dart';
 import '../widgets/glass_container.dart';
@@ -77,16 +78,42 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-                child: Column(
+                child: Row(
                   children: [
-                    Text(location.name,
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelLarge
-                            ?.copyWith(fontSize: 16)),
-                    const SizedBox(height: 4),
-                    Text(location.address,
-                        style: Theme.of(context).textTheme.bodyMedium),
+                    if (location.effectiveLogoPath != null)
+                      Container(
+                        width: 48,
+                        height: 48,
+                        margin: const EdgeInsets.only(right: 16),
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        child: Image.asset(location.effectiveLogoPath!, fit: BoxFit.contain),
+                      ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(location.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelLarge
+                                  ?.copyWith(fontSize: 16)),
+                          const SizedBox(height: 4),
+                          Text(location.address,
+                              style: Theme.of(context).textTheme.bodyMedium),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -169,7 +196,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
             }
           },
           child: Text(selectedSpot != null
-              ? 'Choose Spot (${selectedSpot.id})'
+              ? 'Choose Spot (${selectedSpot.label})'
               : 'Select a spot'),
         ),
       ),
@@ -267,7 +294,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                       : Colors.black.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(spot.id,
+                child: Text(spot.label,
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -370,7 +397,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                 // Details
                 _sheetRow('Location', loc.name),
                 const SizedBox(height: 8),
-                _sheetRow('Spot', spot.id),
+                _sheetRow('Spot', spot.label),
                 const SizedBox(height: 8),
                 _sheetRow('Price',
                     '₱${loc.pricePerHour.toStringAsFixed(0)}/hr'),
@@ -451,7 +478,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                   onPressed: () {
                     final ref =
                         'PRK-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-                    final spotId = spot.id;
+                    final spotLabel = spot.label;
                     final locName = loc.name;
                     final price = totalPrice;
                     final dur = selectedDuration;
@@ -462,7 +489,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => BookingSuccessScreen(
-                          spotId: spotId,
+                          spotLabel: spotLabel,
                           locationName: locName,
                           durationHours: dur,
                           totalPrice: price,
