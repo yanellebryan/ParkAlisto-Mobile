@@ -10,6 +10,7 @@ class ParkingLocation {
   final int availableSpots;
   final String category; // 'car', 'motorcycle', 'truck'
   final double rating;
+  final String? logoPath;
   final List<ParkingSpot> spots;
 
   const ParkingLocation({
@@ -22,6 +23,7 @@ class ParkingLocation {
     required this.availableSpots,
     required this.category,
     required this.rating,
+    this.logoPath,
     this.spots = const [],
   });
 
@@ -37,6 +39,7 @@ class ParkingLocation {
       availableSpots: json['available_spots'] as int,
       category: json['category'] as String,
       rating: (json['rating'] as num).toDouble(),
+      logoPath: json['logo_path'] as String?,
     );
   }
 
@@ -51,6 +54,7 @@ class ParkingLocation {
       'available_spots': availableSpots,
       'category': category,
       'rating': rating,
+      'logo_path': logoPath,
     };
   }
 
@@ -64,6 +68,7 @@ class ParkingLocation {
     int? availableSpots,
     String? category,
     double? rating,
+    String? logoPath,
     List<ParkingSpot>? spots,
   }) {
     return ParkingLocation(
@@ -76,7 +81,26 @@ class ParkingLocation {
       availableSpots: availableSpots ?? this.availableSpots,
       category: category ?? this.category,
       rating: rating ?? this.rating,
+      logoPath: logoPath ?? this.logoPath,
       spots: spots ?? this.spots,
     );
+  }
+}
+
+extension ParkingLocationLogo on ParkingLocation {
+  String? get effectiveLogoPath {
+    if (logoPath != null && logoPath!.isNotEmpty) return logoPath;
+    
+    final lowerName = name.toLowerCase();
+    if (lowerName.contains('ayala')) {
+      return 'assets/images/Ayala_Malls_Logo.png';
+    } else if (lowerName.contains('sm city') || lowerName.contains('sm mall')) {
+      return 'assets/images/SM Logo.png';
+    } else if (lowerName.contains('robinsons')) {
+      return 'assets/images/Robinsons logo.png';
+    } else if (lowerName.contains('la salle')) {
+      return 'assets/images/USLS_Logo.png';
+    }
+    return null;
   }
 }

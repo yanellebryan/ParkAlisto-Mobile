@@ -256,31 +256,26 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(vertical: 20),
         borderRadius: BorderRadius.circular(16),
         opacity: isSelected ? 0.65 : 0.45,
-        child: Container(
-          decoration: BoxDecoration(
-            border: isSelected
-                ? Border.all(
-                    color: AppTheme.brandGreen.withOpacity(0.8), width: 1.5)
-                : null,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              icon,
-              const SizedBox(height: 12),
-              Text(title, style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontSize: 12,
-                      color: isSelected
-                          ? AppTheme.brandGreen.withOpacity(0.8)
-                          : AppTheme.textPrimary.withOpacity(0.4),
-                    ),
-              ),
-            ],
-          ),
+        border: isSelected
+            ? Border.all(
+                color: AppTheme.brandGreen.withOpacity(0.8), width: 1.5)
+            : null,
+        child: Column(
+          children: [
+            icon,
+            const SizedBox(height: 12),
+            Text(title, style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 12,
+                    color: isSelected
+                        ? AppTheme.brandGreen.withOpacity(0.8)
+                        : AppTheme.textPrimary.withOpacity(0.4),
+                  ),
+            ),
+          ],
         ),
       ),
     );
@@ -306,11 +301,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: AppTheme.brandGreenLight.withOpacity(0.5),
+                  color: loc.effectiveLogoPath != null ? Colors.white : AppTheme.brandGreenLight.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(14),
+                  boxShadow: loc.effectiveLogoPath != null ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ] : null,
                 ),
-                child: const Icon(Icons.local_parking,
-                    color: AppTheme.brandGreen, size: 28),
+                child: loc.effectiveLogoPath != null
+                    ? Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Image.asset(loc.effectiveLogoPath!, fit: BoxFit.contain),
+                      )
+                    : const Icon(Icons.local_parking,
+                        color: AppTheme.brandGreen, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -416,13 +423,25 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.brandGreenLight.withOpacity(0.3),
+                  color: loc.effectiveLogoPath != null ? Colors.white : AppTheme.brandGreenLight.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(16),
+                  boxShadow: loc.effectiveLogoPath != null ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ] : null,
                 ),
-                child: Center(
-                  child: Icon(Icons.map_outlined,
-                      color: AppTheme.brandGreen.withOpacity(0.3), size: 32),
-                ),
+                child: loc.effectiveLogoPath != null
+                    ? Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Image.asset(loc.effectiveLogoPath!, fit: BoxFit.contain),
+                      )
+                    : Center(
+                        child: Icon(Icons.map_outlined,
+                            color: AppTheme.brandGreen.withOpacity(0.3), size: 32),
+                      ),
               ),
             ),
           ],

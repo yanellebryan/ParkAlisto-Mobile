@@ -6,6 +6,8 @@ class ParkingSpot {
   final int number;
   final String? locationId;
   SpotStatus status;
+  
+  String get label => '$row$number';
 
   ParkingSpot({
     required this.id,

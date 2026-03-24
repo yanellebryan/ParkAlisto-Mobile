@@ -12,6 +12,7 @@ class GlassContainer extends StatelessWidget {
   final double? height;
   final AlignmentGeometry gradientBegin;
   final AlignmentGeometry gradientEnd;
+  final Border? border;
 
   const GlassContainer({
     Key? key,
@@ -25,6 +26,7 @@ class GlassContainer extends StatelessWidget {
     this.height,
     this.gradientBegin = Alignment.topLeft,
     this.gradientEnd = Alignment.bottomRight,
+    this.border,
   }) : super(key: key);
 
   @override
@@ -77,8 +79,8 @@ class GlassContainer extends StatelessWidget {
                 stops: const [0.0, 0.4],
               ),
               borderRadius: br,
-              // Crisp white border for light mode
-              border: Border.all(
+              // Crisp white border for light mode — customizable
+              border: border ?? Border.all(
                 color: Colors.white.withOpacity(0.80),
                 width: 0.5,
               ),
