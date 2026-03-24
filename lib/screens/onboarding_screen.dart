@@ -1,146 +1,83 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../widgets/car_placeholder.dart';
-import '../widgets/glass_container.dart';
-import '../widgets/glass_button.dart';
 import '../widgets/dynamic_mesh_background.dart';
-import '../theme.dart';
 import 'login_screen.dart';
 
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final size = MediaQuery.of(context).size;
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
 
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5, curve: Curves.easeIn)),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack)),
+    );
+
+    _controller.forward();
+
+    // Navigate to Login after delay
+    Timer(const Duration(milliseconds: 2500), () {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => const LoginScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: DynamicMeshBackground(
-        child: Stack(
-          children: [
-            // Background Concentric Circles — dark tints visible on white bg
-            Positioned(
-              top: -size.width * 0.2,
-              left: -size.width * 0.1,
-              child: Container(
-                width: size.width * 1.2,
-                height: size.width * 1.2,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withOpacity(0.015),
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _fadeAnimation.value,
+                child: Transform.scale(
+                  scale: _scaleAnimation.value,
+                  child: Image.asset(
+                    'assets/icons/Logo_For_WhiteBG_PA.png',
+                    width: 200,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
-            ),
-            Positioned(
-              top: 0,
-              left: size.width * 0.1,
-              child: Container(
-                width: size.width * 0.8,
-                height: size.width * 0.8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withOpacity(0.02),
-                ),
-              ),
-            ),
-            Positioned(
-              top: size.width * 0.2,
-              left: size.width * 0.25,
-              child: Container(
-                width: size.width * 0.5,
-                height: size.width * 0.5,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withOpacity(0.025),
-                ),
-              ),
-            ),
-
-            // Content
-            SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 24),
-                          
-                          // Application Logo
-                          Center(
-                            child: Image.asset(
-                              'assets/icons/Logo_For_WhiteBG_PA.png',
-                              height: 60,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Car Asset scaled by screen height
-                          Center(
-                            child: Transform.rotate(
-                              angle: -0.1, // slightly rotated — UNCHANGED
-                              child: CarTopView(
-                                width: size.width * 0.45,
-                                height: size.width * 0.9,
-                                baseColor: AppTheme.textPrimary.withOpacity(0.85),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 48),
-
-                          // Glassmorphic Content Panel
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
-                            child: GlassContainer(
-                              padding: const EdgeInsets.all(24.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Pick and book the best\nparking spot easily',
-                                    style: theme.textTheme.headlineLarge,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      height: 1.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 40),
-                                  // Next Button inside the glass
-                                  GlassButton(
-                                    isFullWidth: true,
-                                    onPressed: () {
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const LoginScreen(),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text('Next'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
       ),
     );

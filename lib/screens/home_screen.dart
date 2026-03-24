@@ -167,9 +167,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Expanded(
                       child: _buildCategoryCard(
-                          context,
-                          Icons.directions_car,
-                          'Car',
+                      context,
+                      Image.asset(
+                        'assets/icons/main_car.png',
+                        width: 32,
+                        height: 32,
+                        color: appState.selectedCategory == 'car'
+                            ? AppTheme.brandGreen
+                            : AppTheme.textPrimary.withOpacity(0.6),
+                        colorBlendMode: BlendMode.modulate,
+                      ),
+                      'Car',
                           '${appState.filteredLocations.length} places',
                           appState.selectedCategory == 'car',
                           'car')),
@@ -177,7 +185,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                       child: _buildCategoryCard(
                           context,
-                          Icons.two_wheeler,
+                          Icon(Icons.two_wheeler,
+                              size: 32,
+                              color: appState.selectedCategory == 'motorcycle'
+                                  ? AppTheme.brandGreen
+                                  : AppTheme.textPrimary.withOpacity(0.6)),
                           'Motorcycle',
                           '${appState.filteredLocations.length} places',
                           appState.selectedCategory == 'motorcycle',
@@ -186,7 +198,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                       child: _buildCategoryCard(
                           context,
-                          Icons.local_shipping,
+                          Icon(Icons.local_shipping,
+                              size: 32,
+                              color: appState.selectedCategory == 'truck'
+                                  ? AppTheme.brandGreen
+                                  : AppTheme.textPrimary.withOpacity(0.6)),
                           'Truck',
                           '${appState.filteredLocations.length} places',
                           appState.selectedCategory == 'truck',
@@ -232,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ── Helpers ────────────────────────────────────────────────
 
-  Widget _buildCategoryCard(BuildContext context, IconData icon, String title,
+  Widget _buildCategoryCard(BuildContext context, Widget icon, String title,
       String subtitle, bool isSelected, String category) {
     return GestureDetector(
       onTap: () => context.read<AppState>().setCategory(category),
@@ -250,11 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: Column(
             children: [
-              Icon(icon,
-                  size: 32,
-                  color: isSelected
-                      ? AppTheme.brandGreen
-                      : AppTheme.textPrimary.withOpacity(0.6)),
+              icon,
               const SizedBox(height: 12),
               Text(title, style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 4),

@@ -219,7 +219,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
         }
       },
       child: GlassContainer(
-        height: 130,
+        height: 145,
         opacity: isSelected ? 0.70 : (isOccupied ? 0.35 : 0.45),
         borderRadius: BorderRadius.circular(12),
         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -254,7 +254,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                       const Icon(Icons.check, size: 16, color: Colors.white),
                 )
               else
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
               // Spot Name Chip
               Container(
@@ -279,11 +279,10 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
               Expanded(
                 child: Center(
                   child: isOccupied
-                      ? CarTopView(
+                      ? const CarTopView(
                           width: 40,
-                          height: 80,
-                          baseColor:
-                              AppTheme.textPrimary.withOpacity(0.6))
+                          height: 55,
+                        )
                       : isSelected
                           ? Text('Selected',
                               style: TextStyle(
