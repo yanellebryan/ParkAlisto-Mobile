@@ -6,6 +6,9 @@ import '../widgets/glass_container.dart';
 import '../widgets/glass_button.dart';
 import '../widgets/dynamic_mesh_background.dart';
 import 'onboarding_screen.dart';
+import 'payment_methods_screen.dart';
+import 'help_support_screen.dart';
+import 'about_screen.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({Key? key}) : super(key: key);
@@ -58,10 +61,28 @@ class AccountScreen extends StatelessWidget {
               _buildTile(
                   context, Icons.notifications_outlined, 'Notifications'),
               _buildTile(
-                  context, Icons.payment_outlined, 'Payment Methods'),
+                  context, Icons.payment_outlined, 'Payment Methods',
+                  onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
+                );
+              }),
               _buildTile(
-                  context, Icons.help_outline, 'Help & Support'),
-              _buildTile(context, Icons.info_outline, 'About'),
+                  context, Icons.help_outline, 'Help & Support',
+                  onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
+                );
+              }),
+              _buildTile(context, Icons.info_outline, 'About',
+                  onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AboutScreen()),
+                );
+              }),
 
               const SizedBox(height: 32),
               // Log Out

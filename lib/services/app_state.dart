@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/parking_location.dart';
 import '../models/parking_spot.dart';
 import '../models/booking.dart';
+import '../models/payment_method.dart';
 import 'supabase_service.dart';
 import 'mock_data.dart';
 
@@ -14,6 +15,27 @@ class AppState extends ChangeNotifier {
   ParkingSpot? selectedSpot;
   List<Booking> myBookings = [];
   int bottomNavIndex = 0;
+
+  // ── Payment Methods ────────────────────────────────────────
+  List<PaymentMethod> paymentMethods = [
+    PaymentMethod(
+      id: 'pm_1',
+      type: PaymentMethodType.gcash,
+      name: 'GCash',
+      lastFour: '8812',
+      isDefault: true,
+    ),
+    PaymentMethod(
+      id: 'pm_2',
+      type: PaymentMethodType.card,
+      name: 'Visa',
+      lastFour: '4242',
+      expiry: '12/25',
+    ),
+  ];
+
+  bool autoSelectLastUsed = true;
+  bool requireConfirmation = false;
 
   // ── Data loaded from Supabase ─────────────────────────────
   List<ParkingLocation> _locations = [];
@@ -160,6 +182,50 @@ class AppState extends ChangeNotifier {
     } else {
       myBookings[idx].status = 'cancelled';
     }
+    notifyListeners();
+  }
+
+  // ── Payment Actions ────────────────────────────────────────
+  void addPaymentMethod(PaymentMethod method) {
+    paymentMethods.add(method);
+    if (method.isDefault) {
+      setDefaultPaymentMethod(method.id);
+    } else {
+      notifyListeners();
+    }
+  }
+
+  void removePaymentMethod(String id) {
+    paymentMethods.removeWhere((m) => m.id == id);
+    if (paymentMethods.isNotEmpty && !paymentMethods.any((m) => m.isDefault)) {
+      setDefaultPaymentMethod(paymentMethods.first.id);
+    } else {
+      notifyListeners();
+    }
+  }
+
+  void setDefaultPaymentMethod(String id) {
+    for (int i = 0; i < paymentMethods.length; i++) {
+      final m = paymentMethods[i];
+      paymentMethods[i] = PaymentMethod(
+        id: m.id,
+        type: m.type,
+        name: m.name,
+        lastFour: m.lastFour,
+        isDefault: m.id == id,
+        expiry: m.expiry,
+      );
+    }
+    notifyListeners();
+  }
+
+  void toggleAutoSelect(bool value) {
+    autoSelectLastUsed = value;
+    notifyListeners();
+  }
+
+  void toggleRequireConfirmation(bool value) {
+    requireConfirmation = value;
     notifyListeners();
   }
 }
