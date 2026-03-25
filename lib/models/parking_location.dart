@@ -11,6 +11,8 @@ class ParkingLocation {
   final String category; // 'car', 'motorcycle', 'truck'
   final double rating;
   final String? logoPath;
+  final double? latitude;
+  final double? longitude;
   final List<ParkingSpot> spots;
 
   const ParkingLocation({
@@ -24,6 +26,8 @@ class ParkingLocation {
     required this.category,
     required this.rating,
     this.logoPath,
+    this.latitude,
+    this.longitude,
     this.spots = const [],
   });
 
@@ -40,6 +44,8 @@ class ParkingLocation {
       category: json['category'] as String,
       rating: (json['rating'] as num).toDouble(),
       logoPath: json['logo_path'] as String?,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -55,6 +61,8 @@ class ParkingLocation {
       'category': category,
       'rating': rating,
       'logo_path': logoPath,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -69,6 +77,8 @@ class ParkingLocation {
     String? category,
     double? rating,
     String? logoPath,
+    double? latitude,
+    double? longitude,
     List<ParkingSpot>? spots,
   }) {
     return ParkingLocation(
@@ -82,6 +92,8 @@ class ParkingLocation {
       category: category ?? this.category,
       rating: rating ?? this.rating,
       logoPath: logoPath ?? this.logoPath,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       spots: spots ?? this.spots,
     );
   }

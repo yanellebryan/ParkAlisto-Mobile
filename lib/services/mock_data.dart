@@ -28,19 +28,6 @@ class MockData {
   static final List<ParkingLocation> parkingLocations = [
     ParkingLocation(
       id: 'loc_1',
-      name: 'Sudirman District Parking',
-      address: 'Lacson Street, Brgy. 12',
-      district: 'Sudirman',
-      pricePerHour: 35,
-      totalSpots: 24,
-      availableSpots: 10,
-      category: 'car',
-      rating: 4.5,
-      logoPath: null,
-      spots: _generateSpots(24, [0,1,3,4,5,7,8,10,12,13,15,17,19,21]),
-    ),
-    ParkingLocation(
-      id: 'loc_2',
       name: 'Ayala Mall Parking',
       address: 'Ayala North Point, Talisay',
       district: 'Ayala',
@@ -50,36 +37,27 @@ class MockData {
       category: 'car',
       rating: 4.8,
       logoPath: 'assets/images/Ayala_Malls_Logo.png',
+      latitude: 10.676145,
+      longitude: 122.948791,
       spots: _generateSpots(30, [0,1,2,4,5,6,8,9,11,13,14,16,17,19,20,22,24,26]),
     ),
     ParkingLocation(
-      id: 'loc_3',
-      name: 'Libertad Street Parking',
-      address: 'Libertad St., Brgy. 5',
-      district: 'Libertad',
-      pricePerHour: 15,
-      totalSpots: 20,
-      availableSpots: 8,
-      category: 'motorcycle',
-      rating: 4.2,
-      logoPath: null,
-      spots: _generateSpots(20, [0,2,3,4,6,7,9,10,12,14,16,18]),
-    ),
-    ParkingLocation(
-      id: 'loc_4',
-      name: 'SM City Parking',
+      id: 'loc_2',
+      name: 'SM City Bacolod Parking',
       address: 'Rizal Street, Bacolod City',
       district: 'SM City',
       pricePerHour: 60,
       totalSpots: 12,
       availableSpots: 5,
-      category: 'truck',
+      category: 'car',
       rating: 4.0,
       logoPath: 'assets/images/SM Logo.png',
+      latitude: 10.673079,
+      longitude: 122.943373,
       spots: _generateSpots(12, [0,1,3,5,6,8,10]),
     ),
     ParkingLocation(
-      id: 'loc_5',
+      id: 'loc_3',
       name: 'Robinsons Place Parking',
       address: 'Lacson Street, Bacolod City',
       district: 'Robinsons',
@@ -89,10 +67,12 @@ class MockData {
       category: 'car',
       rating: 4.6,
       logoPath: 'assets/images/Robinsons logo.png',
+      latitude: 10.692225,
+      longitude: 122.956981,
       spots: _generateSpots(18, [0,2,4,6,8,10,12]),
     ),
     ParkingLocation(
-      id: 'loc_6',
+      id: 'loc_4',
       name: 'University of St. La Salle',
       address: 'La Salle Avenue, Bacolod City',
       district: 'USLS',
@@ -102,28 +82,30 @@ class MockData {
       category: 'car',
       rating: 4.7,
       logoPath: 'assets/images/USLS_Logo.png',
+      latitude: 10.680323,
+      longitude: 122.962593,
       spots: _generateSpots(45, [1,4,5,8,10,12,15,18,20,22,25,28,30,32,35,38,40]),
     ),
   ];
 
   // ── Recent Places (pull from main list) ────────────────────
   static List<ParkingLocation> get recentPlaces =>
-      [parkingLocations[0], parkingLocations[1]];
+      [parkingLocations[1], parkingLocations[0]];
 
   // ── Recent Bookings ────────────────────────────────────────
   static List<Booking> get recentBookings => [
         Booking(
           id: 'PRK-001',
-          location: parkingLocations[0],
-          spot: parkingLocations[0].spots.firstWhere((s) => s.id == 'A3'),
+          location: parkingLocations[1], // SM City
+          spot: parkingLocations[1].spots.firstWhere((s) => s.id == 'A3'),
           dateTime: DateTime.now().subtract(const Duration(hours: 3)),
           durationHours: 2,
           status: 'active',
         ),
         Booking(
           id: 'PRK-002',
-          location: parkingLocations[1],
-          spot: parkingLocations[1].spots.firstWhere((s) => s.id == 'B2'),
+          location: parkingLocations[0], // Ayala
+          spot: parkingLocations[0].spots.firstWhere((s) => s.id == 'B2'),
           dateTime: DateTime.now().subtract(const Duration(days: 2)),
           durationHours: 4,
           status: 'completed',
