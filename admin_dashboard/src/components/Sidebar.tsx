@@ -1,41 +1,42 @@
+'use client'
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import './components.css';
 
 export default function Sidebar() {
+  const pathname = usePathname();
+
   const handleSignOut = () => {
     localStorage.removeItem('admin_auth');
     window.location.href = '/login';
   };
 
+  const navItems = [
+    { href: '/', label: 'Dashboard', icon: '⊞' },
+    { href: '/reservations', label: 'Reservations', icon: '📅' },
+    { href: '/users', label: 'Users', icon: '👥' },
+    { href: '/settings', label: 'Settings', icon: '⚙️' },
+  ];
+
   return (
     <aside className="sidebar glass">
       <div className="brand">
-        <div className="logo-icon">P</div>
-        <h2>ParkAlisto</h2>
+        <img src="/logo.png" alt="ParkAlisto Logo" className="brand-logo" />
       </div>
       
       <nav className="nav-menu">
-        <ul className="nav-list">
-          <li className="nav-item active">
-            <Link href="/" className="nav-link">
-              <span className="icon">⊞</span> Dashboard
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link href="/reservations" className="nav-link">
-              <span className="icon">📅</span> Reservations
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link href="/users" className="nav-link">
-              <span className="icon">👥</span> Users
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link href="/settings" className="nav-link">
-              <span className="icon">⚙️</span> Settings
-            </Link>
-          </li>
+        <ul className="nav-list" style={{ listStyle: 'none', padding: 0 }}>
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <li key={item.href} className={`nav-item ${isActive ? 'active' : ''}`}>
+                <Link href={item.href} className="nav-link">
+                  <span className="icon">{item.icon}</span> {item.label}
+                  {isActive && <div className="active-indicator" />}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 

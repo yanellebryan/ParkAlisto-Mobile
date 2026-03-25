@@ -105,32 +105,8 @@ export default function BookingsTable() {
     return matchesSearch && matchesStatus;
   });
 
-  // Calculate counts for summary bar
-  const counts = {
-    total: bookings.length,
-    active: bookings.filter(b => b.status === 'active' || b.status === 'confirmed').length,
-    cancelled: bookings.filter(b => b.status === 'cancelled').length,
-    pending: bookings.filter(b => b.status === 'pending').length
-  };
-
   return (
     <div className="bookings-container fade-in-up delay-2">
-      {/* Summary Bar */}
-      <div className="summary-bar">
-        <div className="summary-item total">
-          <div className="summary-label">Total Bookings</div>
-          <div className="summary-value">{counts.total}</div>
-        </div>
-        <div className="summary-item active">
-          <div className="summary-label">Active & Confirmed</div>
-          <div className="summary-value">{counts.active}</div>
-        </div>
-        <div className="summary-item cancelled">
-          <div className="summary-label">Cancelled</div>
-          <div className="summary-value">{counts.cancelled}</div>
-        </div>
-      </div>
-
       <div className="table-wrapper">
         <div className="table-header-row">
           <div className="header-left">

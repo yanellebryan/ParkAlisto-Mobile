@@ -5,11 +5,11 @@
 
 .main-content {
   flex: 1;
-  padding: 24px;
+  padding: 16px 24px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  max-width: 1600px;
+  gap: 20px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
@@ -18,20 +18,32 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 32px;
+  padding: 16px 24px;
+}
+
+.header-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.usls-header-logo {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
 }
 
 .header-titles h1 {
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--text-main);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .subtitle {
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 }
 
 .admin-profile {
@@ -44,26 +56,38 @@
   background: var(--primary);
   color: #fff;
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 1.1rem;
-  box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+  font-size: 1rem;
+  box-shadow: 0 4px 10px rgba(52, 199, 89, 0.2);
 }
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 500px 1fr;
-  gap: 32px;
+  grid-template-columns: 420px 1fr;
+  gap: 24px;
   align-items: start;
 }
 
+.dashboard-grid.standalone {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 32px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.summary-section {
+  width: 100%;
+}
+
 .map-section, .bookings-section {
-  padding: 24px 32px;
-  min-height: 500px;
+  padding: 20px 24px;
+  min-height: 400px;
   display: flex;
   flex-direction: column;
 }
@@ -72,11 +96,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .map-section h2, .bookings-section h2 {
-  font-size: 1.3rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: var(--text-main);
   letter-spacing: -0.02em;

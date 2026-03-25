@@ -32,9 +32,11 @@ export default function LoginPage() {
     <div className="login-container">
       <div className="login-card glass fade-in-up">
         <div className="login-header">
-          <div className="logo-icon">P</div>
-          <h1>USLS Admin</h1>
-          <p>Parking Command Center Access</p>
+          <img src="/logo.png" alt="ParkAlisto Logo" className="login-logo" />
+          <div className="usls-login-branding">
+            <h1>Admin Portal</h1>
+          </div>
+          <p>University Parking Control System</p>
         </div>
 
         <form onSubmit={handleLogin} className="login-form">

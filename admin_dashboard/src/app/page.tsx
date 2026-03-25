@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import LiveMap from '@/components/LiveMap'
-import BookingsTable from '@/components/BookingsTable'
+import SummaryBar from '@/components/SummaryBar'
 import './dashboard.css'
 
 export default function Dashboard() {
@@ -26,9 +26,12 @@ export default function Dashboard() {
       <Sidebar />
       <main className="main-content">
         <header className="header glass">
-          <div className="header-titles">
-            <h1>USLS Parking Command Center</h1>
-            <p className="subtitle">Real-time spot monitoring and access control</p>
+          <div className="header-wrapper">
+            <img src="/usls_logo.png" alt="USLS Logo" className="usls-header-logo" />
+            <div className="header-titles">
+              <h1>Parking Command Center</h1>
+              <p className="subtitle">University of St. La Salle • Real-time Monitoring</p>
+            </div>
           </div>
           <div className="admin-profile">
             <span className="glass-badge">● Live System</span>
@@ -36,8 +39,12 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="dashboard-grid">
-          <section className="map-section glass fade-in-up">
+        <div className="dashboard-grid standalone">
+          <section className="summary-section fade-in-up">
+            <SummaryBar />
+          </section>
+
+          <section className="map-section glass fade-in-up delay-1">
             <div className="section-header">
               <h2>Overview Map</h2>
               <div className="legend">
@@ -46,10 +53,6 @@ export default function Dashboard() {
               </div>
             </div>
             <LiveMap />
-          </section>
-          
-          <section className="bookings-section fade-in-up delay-1">
-            <BookingsTable />
           </section>
         </div>
       </main>

@@ -18,12 +18,23 @@
   margin-bottom: 32px;
 }
 
+.usls-login-branding {
+  margin-bottom: 24px;
+}
+
 .login-header h1 {
   font-size: 1.8rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-main);
-  margin: 12px 0 8px;
-  letter-spacing: -0.03em;
+  margin-bottom: 4px;
+  letter-spacing: -0.02em;
+}
+
+.login-logo {
+  height: 60px;
+  width: auto;
+  margin-bottom: 8px;
+  object-fit: contain;
 }
 
 .login-header p {
