@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/parking_location.dart';
 import '../models/parking_spot.dart';
 import '../models/booking.dart';
+import '../models/payment_method.dart';
 
 /// Service that handles all Supabase database operations.
 class SupabaseService {
@@ -68,6 +69,7 @@ class SupabaseService {
     required String spotId,
     required int durationHours,
     required double totalPrice,
+    String? paymentMethod,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User not logged in');
@@ -79,6 +81,7 @@ class SupabaseService {
       'duration_hours': durationHours,
       'total_price': totalPrice,
       'status': 'active',
+      'payment_method': paymentMethod,
     });
 
     // Mark the spot as occupied
@@ -144,5 +147,61 @@ class SupabaseService {
     final user = _client.auth.currentUser;
     if (user == null) return '';
     return user.email ?? '';
+  }
+
+  // ─── Payment Methods ──────────────────────────────────────
+
+  /// Fetch all payment methods for the current user
+  Future<List<PaymentMethod>> getPaymentMethods() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+
+    final data = await _client
+        .from('payment_methods')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: true);
+    return (data as List).map((json) => PaymentMethod.fromJson(json)).toList();
+  }
+
+  /// Create a new payment method
+  Future<PaymentMethod> createPaymentMethod(PaymentMethod method) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not logged in');
+
+    final data = await _client.from('payment_methods').insert({
+      ...method.toJson(),
+      'user_id': userId,
+    }).select().single();
+
+    return PaymentMethod.fromJson(data);
+  }
+
+  /// Delete a payment method
+  Future<void> deletePaymentMethod(String id) async {
+    await _client.from('payment_methods').delete().eq('id', id);
+  }
+
+  /// Update payment method (e.g. set as default)
+  Future<void> updatePaymentMethod(String id, Map<String, dynamic> updates) async {
+    await _client.from('payment_methods').update(updates).eq('id', id);
+  }
+
+  /// Set a specific payment method as default and unset others
+  Future<void> setDefaultPaymentMethod(String id) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    // Unset all as default first
+    await _client
+        .from('payment_methods')
+        .update({'is_default': false})
+        .eq('user_id', userId);
+
+    // Set the chosen one as default
+    await _client
+        .from('payment_methods')
+        .update({'is_default': true})
+        .eq('id', id);
   }
 }

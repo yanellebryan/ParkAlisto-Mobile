@@ -3,6 +3,7 @@ import '../models/parking_location.dart';
 import '../models/parking_spot.dart';
 import '../models/booking.dart';
 import '../models/payment_method.dart';
+import 'logger.dart';
 import 'supabase_service.dart';
 import 'mock_data.dart';
 
@@ -15,25 +16,9 @@ class AppState extends ChangeNotifier {
   ParkingSpot? selectedSpot;
   List<Booking> myBookings = [];
   int bottomNavIndex = 0;
+  PaymentMethod? selectedPaymentMethod;
 
-  // ── Payment Methods ────────────────────────────────────────
-  List<PaymentMethod> paymentMethods = [
-    PaymentMethod(
-      id: 'pm_1',
-      type: PaymentMethodType.gcash,
-      name: 'GCash',
-      lastFour: '8812',
-      isDefault: true,
-    ),
-    PaymentMethod(
-      id: 'pm_2',
-      type: PaymentMethodType.card,
-      name: 'Visa',
-      lastFour: '4242',
-      expiry: '12/25',
-    ),
-  ];
-
+  List<PaymentMethod> paymentMethods = [];
   bool autoSelectLastUsed = true;
   bool requireConfirmation = false;
 
@@ -69,11 +54,15 @@ class AppState extends ChangeNotifier {
       uniqueByNormalizedName[normalize(loc.name)] = loc;
     }
 
-    // Add Supabase data ONLY if we don't already have a mock equivalent
+    // Add Supabase data. If we match a mock, ADOPT the Supabase ID.
     if (_locations.isNotEmpty) {
       for (var loc in _locations) {
         final norm = normalize(loc.name);
-        if (!uniqueByNormalizedName.containsKey(norm)) {
+        if (uniqueByNormalizedName.containsKey(norm)) {
+          // Adopt the real UUID from Supabase for this mock
+          final mock = uniqueByNormalizedName[norm]!;
+          uniqueByNormalizedName[norm] = mock.copyWith(id: loc.id);
+        } else {
           uniqueByNormalizedName[norm] = loc;
         }
       }
@@ -95,11 +84,12 @@ class AppState extends ChangeNotifier {
       _locations =
           await _supabase.getLocations(category: selectedCategory);
       isLoading = false;
+      loadPaymentMethods(); // Load payments too
       notifyListeners();
     } catch (e) {
       isLoading = false;
       errorMessage = 'Could not load parking locations';
-      debugPrint('Error loading locations: $e');
+      AppLogger.error('Error loading locations', e);
       notifyListeners();
     }
   }
@@ -115,7 +105,7 @@ class AppState extends ChangeNotifier {
       _spots = await _supabase.getSpotsForLocation(locationId);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error loading spots: $e');
+      AppLogger.error('Error loading spots', e);
       _spots = [];
       notifyListeners();
     }
@@ -123,11 +113,34 @@ class AppState extends ChangeNotifier {
 
   // ── Load user bookings ────────────────────────────────────
   Future<void> loadBookings() async {
+    if (!_supabase.isLoggedIn) return; // Don't overwrite local list if not logged in
+
     try {
       myBookings = await _supabase.getMyBookings();
       notifyListeners();
     } catch (e) {
-      debugPrint('Error loading bookings: $e');
+      AppLogger.error('Error loading bookings', e);
+    }
+  }
+
+  // ── Load payment methods ──────────────────────────────────
+  Future<void> loadPaymentMethods() async {
+    if (!_supabase.isLoggedIn) {
+      paymentMethods = [];
+      notifyListeners();
+      return;
+    }
+    try {
+      paymentMethods = await _supabase.getPaymentMethods();
+      if (paymentMethods.isNotEmpty && selectedPaymentMethod == null) {
+        selectedPaymentMethod = paymentMethods.firstWhere(
+          (m) => m.isDefault,
+          orElse: () => paymentMethods.first,
+        );
+      }
+      notifyListeners();
+    } catch (e) {
+      AppLogger.error('Error loading payment methods', e);
     }
   }
 
@@ -160,32 +173,50 @@ class AppState extends ChangeNotifier {
   Future<void> confirmBooking(int durationHours) async {
     if (selectedLocation == null || selectedSpot == null) return;
 
+    final bookingId = 'PRK-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    final newBooking = Booking(
+      id: bookingId,
+      location: selectedLocation!,
+      spot: selectedSpot!,
+      dateTime: DateTime.now(),
+      durationHours: durationHours,
+      status: 'active',
+      paymentMethod: selectedPaymentMethod?.name ?? 'Cash',
+    );
+
     if (_supabase.isLoggedIn) {
       try {
-        await _supabase.createBooking(
-          locationId: selectedLocation!.id,
-          spotId: selectedSpot!.id,
-          durationHours: durationHours,
-          totalPrice: selectedLocation!.pricePerHour * durationHours,
-        );
-        await loadBookings(); // Refresh from DB
+        // Robust UUID check: Mock IDs like "A1", "B4" are NOT UUIDs.
+        // Mapped locations use UUIDs for locationId, but if spots are missing,
+        // we'll have a mock spot ID.
+        final bool isUuidSpot = RegExp(
+          r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+          caseSensitive: false,
+        ).hasMatch(selectedSpot!.id);
+
+        if (!isUuidSpot) {
+          myBookings.insert(0, newBooking);
+          AppLogger.info('Booking mock spot locally: ${selectedSpot!.id}');
+        } else {
+          await _supabase.createBooking(
+            locationId: selectedLocation!.id,
+            spotId: selectedSpot!.id,
+            durationHours: durationHours,
+            totalPrice: selectedLocation!.pricePerHour * durationHours,
+            paymentMethod: selectedPaymentMethod?.name ?? 'Cash',
+          );
+          await loadBookings();
+          await loadSpots(selectedLocation!.id);
+        }
       } catch (e) {
-        debugPrint('Error creating booking: $e');
+        AppLogger.error('Error creating booking', e);
+        // Final fallback: showing at least locally
+        myBookings.insert(0, newBooking);
       }
     } else {
-      // Local fallback (no auth yet)
-      final booking = Booking(
-        id: 'PRK-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
-        location: selectedLocation!,
-        spot: selectedSpot!,
-        dateTime: DateTime.now(),
-        durationHours: durationHours,
-        status: 'active',
-      );
-      myBookings.insert(0, booking);
+      myBookings.insert(0, newBooking);
     }
 
-    // Mark spot as occupied locally
     selectedSpot!.status = SpotStatus.occupied;
     selectedSpot = null;
     notifyListeners();
@@ -208,7 +239,7 @@ class AppState extends ChangeNotifier {
         );
         await loadBookings();
       } catch (e) {
-        debugPrint('Error cancelling booking: $e');
+        AppLogger.error('Error cancelling booking', e);
       }
     } else {
       myBookings[idx].status = 'cancelled';
@@ -217,37 +248,64 @@ class AppState extends ChangeNotifier {
   }
 
   // ── Payment Actions ────────────────────────────────────────
-  void addPaymentMethod(PaymentMethod method) {
-    paymentMethods.add(method);
-    if (method.isDefault) {
-      setDefaultPaymentMethod(method.id);
+  Future<void> addPaymentMethod(PaymentMethod method) async {
+    if (_supabase.isLoggedIn) {
+      try {
+        await _supabase.createPaymentMethod(method);
+        await loadPaymentMethods();
+      } catch (e) {
+        AppLogger.error('Error adding payment method', e);
+      }
     } else {
-      notifyListeners();
+      paymentMethods.add(method);
+      if (method.isDefault) {
+        setDefaultPaymentMethod(method.id);
+      } else {
+        notifyListeners();
+      }
     }
   }
 
-  void removePaymentMethod(String id) {
-    paymentMethods.removeWhere((m) => m.id == id);
-    if (paymentMethods.isNotEmpty && !paymentMethods.any((m) => m.isDefault)) {
-      setDefaultPaymentMethod(paymentMethods.first.id);
+  Future<void> removePaymentMethod(String id) async {
+    if (_supabase.isLoggedIn) {
+      try {
+        await _supabase.deletePaymentMethod(id);
+        await loadPaymentMethods();
+      } catch (e) {
+        AppLogger.error('Error removing payment method', e);
+      }
     } else {
-      notifyListeners();
+      paymentMethods.removeWhere((m) => m.id == id);
+      if (paymentMethods.isNotEmpty && !paymentMethods.any((m) => m.isDefault)) {
+        setDefaultPaymentMethod(paymentMethods.first.id);
+      } else {
+        notifyListeners();
+      }
     }
   }
 
-  void setDefaultPaymentMethod(String id) {
-    for (int i = 0; i < paymentMethods.length; i++) {
-      final m = paymentMethods[i];
-      paymentMethods[i] = PaymentMethod(
-        id: m.id,
-        type: m.type,
-        name: m.name,
-        lastFour: m.lastFour,
-        isDefault: m.id == id,
-        expiry: m.expiry,
-      );
+  Future<void> setDefaultPaymentMethod(String id) async {
+    if (_supabase.isLoggedIn) {
+      try {
+        await _supabase.setDefaultPaymentMethod(id);
+        await loadPaymentMethods();
+      } catch (e) {
+        AppLogger.error('Error setting default payment method', e);
+      }
+    } else {
+      for (int i = 0; i < paymentMethods.length; i++) {
+        final m = paymentMethods[i];
+        paymentMethods[i] = PaymentMethod(
+          id: m.id,
+          type: m.type,
+          name: m.name,
+          lastFour: m.lastFour,
+          isDefault: m.id == id,
+          expiry: m.expiry,
+        );
+      }
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   void toggleAutoSelect(bool value) {
@@ -257,6 +315,11 @@ class AppState extends ChangeNotifier {
 
   void toggleRequireConfirmation(bool value) {
     requireConfirmation = value;
+    notifyListeners();
+  }
+
+  void setSelectedPaymentMethod(PaymentMethod method) {
+    selectedPaymentMethod = method;
     notifyListeners();
   }
 }

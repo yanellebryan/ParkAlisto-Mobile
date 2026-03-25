@@ -202,6 +202,9 @@ class PaymentMethodsScreen extends StatelessWidget {
         iconData = Icons.credit_card;
         iconColor = Colors.orange;
         break;
+      default:
+        iconData = Icons.payments_outlined;
+        iconColor = AppTheme.brandGreen;
     }
 
     return Container(
@@ -433,32 +436,16 @@ class PaymentMethodsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             _buildAddOptionTile(context, 'GCash', Icons.account_balance_wallet, Colors.blue, () {
-              context.read<AppState>().addPaymentMethod(PaymentMethod(
-                    id: DateTime.now().toString(),
-                    type: PaymentMethodType.gcash,
-                    name: 'GCash',
-                    lastFour: '1234',
-                  ));
               Navigator.pop(ctx);
+              _showAddPaymentForm(context, PaymentMethodType.gcash);
             }),
             _buildAddOptionTile(context, 'Maya', Icons.wallet, Colors.green, () {
-              context.read<AppState>().addPaymentMethod(PaymentMethod(
-                    id: DateTime.now().toString(),
-                    type: PaymentMethodType.maya,
-                    name: 'Maya',
-                    lastFour: '5678',
-                  ));
               Navigator.pop(ctx);
+              _showAddPaymentForm(context, PaymentMethodType.maya);
             }),
             _buildAddOptionTile(context, 'Credit/Debit Card', Icons.credit_card, Colors.orange, () {
-              context.read<AppState>().addPaymentMethod(PaymentMethod(
-                    id: DateTime.now().toString(),
-                    type: PaymentMethodType.card,
-                    name: 'Mastercard',
-                    lastFour: '9012',
-                    expiry: '09/27',
-                  ));
               Navigator.pop(ctx);
+              _showAddPaymentForm(context, PaymentMethodType.card);
             }),
             const SizedBox(height: 12),
             GlassButton(
@@ -502,6 +489,100 @@ class PaymentMethodsScreen extends StatelessWidget {
               const Icon(Icons.add_circle_outline, color: AppTheme.brandGreen, size: 20),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddPaymentForm(BuildContext context, PaymentMethodType type) {
+    final nameController = TextEditingController();
+    final numberController = TextEditingController();
+    final expiryController = TextEditingController();
+
+    final title = type == PaymentMethodType.card ? 'Add Card' : 'Add ${type.name.toUpperCase()}';
+    final numberLabel = type == PaymentMethodType.card ? 'Card Number' : 'Mobile Number';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: GlassContainer(
+          padding: const EdgeInsets.all(24),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(32),
+            topRight: Radius.circular(32),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 24),
+              _buildTextField(nameController, 'Name (e.g. My Account)', Icons.person_outline),
+              const SizedBox(height: 16),
+              _buildTextField(numberController, numberLabel, Icons.phone_android),
+              if (type == PaymentMethodType.card) ...[
+                const SizedBox(height: 16),
+                _buildTextField(expiryController, 'Expiry (MM/YY)', Icons.calendar_today_outlined),
+              ],
+              const SizedBox(height: 32),
+              GlassButton(
+                isFullWidth: true,
+                onPressed: () {
+                  final number = numberController.text.trim();
+                  if (number.length < 4) return;
+                  
+                  final lastFour = number.substring(number.length - 4);
+                  final name = nameController.text.trim();
+
+                  context.read<AppState>().addPaymentMethod(PaymentMethod(
+                        id: DateTime.now().toString(),
+                        type: type,
+                        name: name.isEmpty ? type.name.toUpperCase() : name,
+                        lastFour: lastFour,
+                        expiry: type == PaymentMethodType.card ? expiryController.text : null,
+                      ));
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Save Payment Method'),
+              ),
+              const SizedBox(height: 12),
+              GlassButton(
+                isFullWidth: true,
+                variant: GlassButtonVariant.ghost,
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: TextField(
+        controller: controller,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          icon: Icon(icon, color: Colors.white70, size: 20),
+          hintText: label,
+          hintStyle: const TextStyle(color: Colors.white38),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );

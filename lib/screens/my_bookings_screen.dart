@@ -130,7 +130,7 @@ class MyBookingsScreen extends StatelessWidget {
             const SizedBox(height: 12),
 
             // Info rows
-            _infoRow(Icons.local_parking, 'Spot ${booking.spot.id}'),
+            _infoRow(Icons.local_parking, 'Spot ${booking.spot.label}'),
             const SizedBox(height: 4),
             _infoRow(Icons.calendar_today_outlined,
                 '${booking.dateTime.day}/${booking.dateTime.month}/${booking.dateTime.year}  ${booking.dateTime.hour}:${booking.dateTime.minute.toString().padLeft(2, '0')}'),
