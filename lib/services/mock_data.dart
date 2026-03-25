@@ -5,16 +5,18 @@ import '../models/booking.dart';
 class MockData {
   // ── Helper: generate spots for a location ──────────────────
   static List<ParkingSpot> _generateSpots(int total, List<int> occupiedIndices) {
-    final rows = ['A', 'B', 'C', 'D', 'E', 'F'];
+    final rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
     final spots = <ParkingSpot>[];
     int idx = 0;
     for (int i = 0; i < total; i++) {
       final row = rows[i ~/ 6 % rows.length];
       final number = (i % 6) + 1;
+      final floor = (i / 24).floor() + 1; // 24 spots per floor
       spots.add(ParkingSpot(
         id: '$row$number',
         row: row,
         number: number,
+        floor: floor,
         status: occupiedIndices.contains(idx)
             ? SpotStatus.occupied
             : SpotStatus.available,
@@ -73,18 +75,18 @@ class MockData {
     ),
     ParkingLocation(
       id: 'loc_4',
-      name: 'University of St. La Salle',
+      name: 'University of St. La Salle Parking',
       address: 'La Salle Avenue, Bacolod City',
       district: 'USLS',
       pricePerHour: 20,
-      totalSpots: 45,
-      availableSpots: 28,
+      totalSpots: 72,
+      availableSpots: 45,
       category: 'car',
       rating: 4.7,
       logoPath: 'assets/images/USLS_Logo.png',
       latitude: 10.680323,
       longitude: 122.962593,
-      spots: _generateSpots(45, [1,4,5,8,10,12,15,18,20,22,25,28,30,32,35,38,40]),
+      spots: _generateSpots(72, [1,4,5,8,10,12,15,18,20,22,25,28,30,32,35,38,40,43,46,48,50,53,56,58,60,63,66,68]),
     ),
   ];
 

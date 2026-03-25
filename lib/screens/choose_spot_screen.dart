@@ -46,23 +46,23 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
       );
     }
 
-    // Split spots into 3 "floors"
+    // Split spots into floors based on the 'floor' property from the database
     final allSpots = appState.currentSpots.isNotEmpty ? appState.currentSpots : location.spots;
-    final spotsPerFloor = (allSpots.length / 3).ceil();
-    final floorSpots = <List<ParkingSpot>>[];
-    for (int i = 0; i < 3; i++) {
-      final start = i * spotsPerFloor;
-      final end = (start + spotsPerFloor).clamp(0, allSpots.length);
-      if (start < allSpots.length) {
-        floorSpots.add(allSpots.sublist(start, end));
-      } else {
-        floorSpots.add([]);
-      }
-    }
-
-    final currentSpots = floorSpots[_currentFloorIndex];
     final selectedSpot = appState.selectedSpot;
-    final isUSLS = location.name.contains('University of St. La Salle') || location.id == 'loc_6';
+    
+    // Determine spots for the current floor
+    // If spots have a floor property (Supabase), filter by it. 
+    // Otherwise (Mock), fall back to slicing 24 per floor.
+    final List<ParkingSpot> currentSpots;
+    if (allSpots.any((s) => s.floor != null)) {
+      currentSpots = allSpots.where((s) => s.floor == (_currentFloorIndex + 1)).toList();
+    } else {
+      final spotsPerFloor = (allSpots.length / 3).ceil();
+      final start = _currentFloorIndex * spotsPerFloor;
+      final end = (start + spotsPerFloor).clamp(0, allSpots.length);
+      currentSpots = (start < allSpots.length) ? allSpots.sublist(start, end) : [];
+    }
+    final isUSLS = location.name.contains('University of St. La Salle') || location.id == 'loc_4';
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -135,14 +135,9 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Floor selector
+              // Floor selector — opens picker showing all floors
               GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _currentFloorIndex =
-                        (_currentFloorIndex + 1) % _floors.length;
-                  });
-                },
+                onTap: () => _showFloorPicker(context),
                 child: GlassContainer(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -151,7 +146,9 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(_floors[_currentFloorIndex],
-                          style: TextStyle(color: AppTheme.textPrimary)),
+                          style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontWeight: FontWeight.w600)),
                       const SizedBox(width: 8),
                       Icon(Icons.keyboard_arrow_down,
                           size: 20,
@@ -251,236 +248,259 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
     );
   }
 
-  Widget _buildSpotGrid(List<ParkingSpot> spots, ParkingSpot? selectedSpot,
-      AppState appState) {
-    // Arrange in rows of 4
-    final List<Widget> rows = [];
-    for (int i = 0; i < spots.length; i += 4) {
-      final rowSpots = spots.sublist(i, (i + 4).clamp(0, spots.length));
-      rows.add(Row(
-        children: rowSpots
-            .expand<Widget>((s) => [
-                  Expanded(child: _buildSpot(s, selectedSpot, appState)),
-                  if (rowSpots.indexOf(s) < rowSpots.length - 1)
-                    _buildVerticalDivider(),
-                ])
-            .toList(),
-      ));
-      if (i + 4 < spots.length) {
-        rows.add(const SizedBox(height: 16));
-      }
-    }
-    return Column(children: rows);
-  }
+  Widget _buildSpotGrid(List<ParkingSpot> spots, ParkingSpot? selectedSpot, AppState appState) {
+    const double spotW = 92.0;
+    const double spotH = 75.0; 
+    const double colGap = 12.0;
+    final double gridWidth = (spotW * 3) + (colGap * 2);
 
-  Widget _buildVerticalDivider() {
-    return Container(
-      width: 1,
-      height: 110,
-      color: Colors.black.withOpacity(0.08),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.textPrimary.withValues(alpha: 0.07), width: 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _badge('ENTRANCE', AppTheme.brandGreen, Icons.arrow_upward),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: gridWidth,
+              child: GridView.builder(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: spotW / spotH,
+                  crossAxisSpacing: colGap,
+                  mainAxisSpacing: colGap,
+                ),
+                itemCount: spots.length,
+                itemBuilder: (ctx, idx) => _buildSpot(spots[idx], selectedSpot, appState, 
+                    width: spotW, height: spotH, noMargin: true),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _badge('EXIT', Colors.red, Icons.arrow_downward),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildUSLSLayout(List<ParkingSpot> spots, ParkingSpot? selectedSpot, AppState appState) {
-    // Spot dimensions – bigger landscape cards
-    const double spotW = 88;
-    const double spotH = 64;
-    const double rowGap = 8.0;
-    const double colGap = 10.0;
-    const double aisleW = 96.0;  // wide driving aisle
+    // Robust mapping: Create a map of spots by their label (e.g., 'A1', 'B3')
+    // This prevents naming mismatches if the DB order changes.
+    final Map<String, ParkingSpot> spotMap = {
+      for (var s in spots) s.label: s
+    };
 
-    Widget makeSpot(int index) {
-      if (index < spots.length) {
-        return _buildSpot(spots[index], selectedSpot, appState,
-            width: spotW, height: spotH, isUSLS: true);
+    // Helper to get spot by row and number
+    ParkingSpot? getSpot(String row, int num) => spotMap['$row$num'];
+
+    // Fixed spot dimensions
+    const double spotW = 82.0;
+    const double spotH = 68.0;
+    const double colGap = 8.0;
+    const double aisleW = 64.0;
+    const double rowGap = 6.0;
+
+    // Section sizes
+    final double sectionAW = spotW * 2 + colGap;
+    final double sectionBW = spotW;
+    final double totalW = sectionAW + aisleW + sectionBW;
+
+    Widget makeTile(ParkingSpot? spot) {
+      if (spot != null) {
+        return _buildSpot(spot, selectedSpot, appState,
+            width: spotW, height: spotH, noMargin: true);
       }
-      // Empty placeholder
-      return SizedBox(width: spotW + 8, height: spotH + 8);
+      return SizedBox(width: spotW, height: spotH);
     }
 
-    // ─── TOP: 3 spots centred ─────────────────────────────────
-    // Sketch shows 3 spots near top-centre (spots 0-2)
-    final topSpots = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        makeSpot(0),
-        SizedBox(width: rowGap),
-        makeSpot(1),
-        SizedBox(width: rowGap),
-        makeSpot(2),
-      ],
+    // Determine which rows are on this floor
+    // Floor 1: A, B, C, D
+    // Floor 2: E, F, G, H
+    // Floor 3: I, J, K, L
+    final List<String> floorRows;
+    if (_currentFloorIndex == 0) floorRows = ['A', 'B', 'C', 'D'];
+    else if (_currentFloorIndex == 1) floorRows = ['E', 'F', 'G', 'H'];
+    else floorRows = ['I', 'J', 'K', 'L'];
+
+    final r1 = floorRows[0];
+    final r2 = floorRows[1];
+    final r3 = floorRows[2];
+    final r4 = floorRows[3];
+
+    // Top Row: Row 1, Spots 1-3
+    final topRow = SizedBox(
+      width: totalW,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          makeTile(getSpot(r1, 1)),
+          const SizedBox(width: colGap),
+          makeTile(getSpot(r1, 2)),
+          const SizedBox(width: colGap),
+          makeTile(getSpot(r1, 3)),
+        ],
+      ),
     );
 
-    // ─── MAIN BODY ────────────────────────────────────────────
-    // Left block: 2 columns × 8 rows  → spots 3-18
-    // Right block: 1 column × 8 rows  → spots 19-26
-    List<Widget> bodyRows = [];
-    for (int r = 0; r < 8; r++) {
-      final leftA = makeSpot(3 + r * 2);      // col 1
-      final leftB = makeSpot(3 + r * 2 + 1);  // col 2
-      final right  = makeSpot(19 + r);         // single right col
+    // Section A (Left): 2 columns
+    // Row 1 (4-6), Row 2 (1-6), Row 3 (1-5) -> 3+6+5 = 14 spots = 7 rows of 2
+    List<ParkingSpot?> sectionASpots = [
+      getSpot(r1, 4), getSpot(r1, 5),
+      getSpot(r1, 6), getSpot(r2, 1),
+      getSpot(r2, 2), getSpot(r2, 3),
+      getSpot(r2, 4), getSpot(r2, 5),
+      getSpot(r2, 6), getSpot(r3, 1),
+      getSpot(r3, 2), getSpot(r3, 3),
+      getSpot(r3, 4), getSpot(r3, 5),
+    ];
 
-      bodyRows.add(
+    // Section B (Right): 1 column
+    // Row 3 (6), Row 4 (1-6) -> 1+6 = 7 spots = 7 rows of 1
+    List<ParkingSpot?> sectionBSpots = [
+      getSpot(r3, 6),
+      getSpot(r4, 1),
+      getSpot(r4, 2),
+      getSpot(r4, 3),
+      getSpot(r4, 4),
+      getSpot(r4, 5),
+      getSpot(r4, 6),
+    ];
+
+    List<Widget> sectionARows = [];
+    List<Widget> sectionBRows = [];
+
+    for (int r = 0; r < 7; r++) {
+      sectionARows.add(
         Row(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Left 2-col group
-            leftA,
-            SizedBox(width: rowGap),
-            leftB,
-            // Wide aisle (driving lane)
-            SizedBox(width: aisleW),
-            // Right 1-col group
-            right,
+            makeTile(sectionASpots[r * 2]),
+            const SizedBox(width: colGap),
+            makeTile(sectionASpots[r * 2 + 1]),
           ],
         ),
       );
-      if (r < 7) bodyRows.add(SizedBox(height: colGap));
+      sectionBRows.add(makeTile(sectionBSpots[r]));
+      if (r < 6) {
+        sectionARows.add(const SizedBox(height: rowGap));
+        sectionBRows.add(const SizedBox(height: rowGap));
+      }
     }
 
-    // ─── BADGE helper ─────────────────────────────────────────
-    Widget badge(String text, Color color, IconData icon) => Row(
+    final bodyContent = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(mainAxisSize: MainAxisSize.min, children: sectionARows),
+        SizedBox(width: aisleW),
+        Column(mainAxisSize: MainAxisSize.min, children: sectionBRows),
+      ],
+    );
+
+    Widget sectionHeaders() => SizedBox(
+          width: totalW,
+          child: Row(
+            children: [
+              SizedBox(width: sectionAW, child: Center(child: Text('SECTION A', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.textPrimary.withValues(alpha: 0.35))))),
+              SizedBox(width: aisleW),
+              SizedBox(width: sectionBW, child: Center(child: Text('SECTION B', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.textPrimary.withValues(alpha: 0.35))))),
+            ],
+          ),
+        );
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.textPrimary.withValues(alpha: 0.07), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: color.withValues(alpha: 0.5), width: 1.2),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 12, color: color),
-                  const SizedBox(width: 5),
-                  Text(
-                    text,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: color,
-                      letterSpacing: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _badge('ENTRANCE', AppTheme.brandGreen, Icons.arrow_upward),
+            const SizedBox(height: 10),
+            topRow,
+            _drivewayDivider('DRIVEWAY', totalW),
+            Padding(padding: const EdgeInsets.only(bottom: 6), child: sectionHeaders()),
+            bodyContent,
+            const SizedBox(height: 16),
+            _badge('EXIT', Colors.red, Icons.arrow_downward),
           ],
-        );
-
-    // ─── ROW label ────────────────────────────────────────────
-    Widget rowLabel(String left, String right) => Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Left 2 cols width = 2 * (spotW+8) + rowGap
-              SizedBox(
-                width: (spotW + 8) * 2 + rowGap,
-                child: Center(
-                  child: Text(left,
-                      style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                          color: AppTheme.textPrimary.withValues(alpha: 0.35))),
-                ),
-              ),
-              SizedBox(width: aisleW),
-              // Right col width = spotW+8
-              SizedBox(
-                width: spotW + 8,
-                child: Center(
-                  child: Text(right,
-                      style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                          color: AppTheme.textPrimary.withValues(alpha: 0.35))),
-                ),
-              ),
-            ],
-          ),
-        );
-
-    // Full lot width (for aisle label)
-    final double totalWidth = (spotW + 8) * 2 + rowGap + aisleW + (spotW + 8);
-
-    Widget drivewayDivider(String label) => SizedBox(
-          width: totalWidth,
-          height: 36,
-          child: Row(
-            children: [
-              Expanded(
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.compare_arrows, size: 13,
-                          color: AppTheme.textPrimary.withValues(alpha: 0.28)),
-                      const SizedBox(width: 4),
-                      Text(label,
-                          style: TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.0,
-                              color: AppTheme.textPrimary.withValues(alpha: 0.28))),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.textPrimary.withValues(alpha: 0.07), width: 1),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── ENTRANCE badge (top-left like sketch) ──────────
-          badge('ENTRANCE', AppTheme.brandGreen, Icons.arrow_upward),
-          const SizedBox(height: 12),
-
-          // ── 3 top spots (centred) ──────────────────────────
-          Center(child: topSpots),
-
-          drivewayDivider('DRIVEWAY'),
-
-          // ── Left/Right column headers ──────────────────────
-          rowLabel('SECTION A', 'SECTION B'),
-
-          // ── Main body rows ──────────────────────────────────
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: bodyRows,
-          ),
-
-          const SizedBox(height: 16),
-
-          // ── EXIT badge (bottom-left like sketch) ────────────
-          badge('EXIT', Colors.red, Icons.arrow_downward),
-        ],
+        ),
       ),
     );
   }
 
+
+  // ── Shared High-Fidelity UL Elements ────────────────────────
+
+  Widget _badge(String text, Color color, IconData icon) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.5), width: 1.2),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 5),
+            Text(text,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    letterSpacing: 1.3)),
+          ],
+        ),
+      );
+
+  Widget _drivewayDivider(String label, double width) => SizedBox(
+        width: width,
+        height: 32,
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.compare_arrows,
+                  size: 13, color: AppTheme.textPrimary.withValues(alpha: 0.28)),
+              const SizedBox(width: 4),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary.withValues(alpha: 0.28))),
+            ],
+          ),
+        ),
+      );
+
   Widget _buildSpot(
       ParkingSpot spot, ParkingSpot? selectedSpot, AppState appState, 
-      {bool isVertical = false, double? width, double? height, bool isUSLS = false}) {
+      {double? width, double? height, bool noMargin = false}) {
     final bool isOccupied = spot.status == SpotStatus.occupied;
     final bool isSelected = selectedSpot?.id == spot.id;
 
-    final occupiedColor = isUSLS ? Colors.red : AppTheme.textPrimary.withOpacity(0.04);
-    final availableBorderColor = isUSLS ? AppTheme.brandGreen : AppTheme.brandGreen.withOpacity(0.3);
+    final occupiedColor = Colors.red;
+    final availableBorderColor = AppTheme.brandGreen;
 
     return GestureDetector(
       onTap: () {
@@ -493,7 +513,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
         width: width,
         opacity: isSelected ? 0.70 : (isOccupied ? 0.35 : 0.45),
         borderRadius: BorderRadius.circular(12),
-        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        margin: noMargin ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Container(
           decoration: isSelected
               ? BoxDecoration(
@@ -505,7 +525,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                   ? BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       color: occupiedColor.withOpacity(0.15),
-                      border: isUSLS ? Border.all(color: Colors.red, width: 1.5) : null,
+                      border: Border.all(color: Colors.red, width: 1.5),
                     )
                   : BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
@@ -513,38 +533,30 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                           color: availableBorderColor,
                           width: 1),
                     ),
-          child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _spotNameChip(spot, isSelected),
-                const SizedBox(height: 4),
-                Expanded(
-                  child: Center(
-                    child: isOccupied
-                        ? const CarTopView(width: 25, height: 40)
-                        : Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                isSelected ? 'Selected' : 'Available',
-                                style: TextStyle(
-                                  color: isSelected ? AppTheme.brandGreenDeep : AppTheme.textPrimary.withValues(alpha: 0.45),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-                if (isSelected) ...[
-                   const SizedBox(height: 4),
-                   _checkIcon(),
+          child: ClipRect(
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  _spotNameChip(spot, isSelected),
+                  const SizedBox(height: 2),
+                  if (isOccupied)
+                    const CarTopView(width: 20, height: 28)
+                  else if (isSelected)
+                    _checkIcon()
+                  else
+                    Text(
+                      'Available',
+                      style: TextStyle(
+                        color: AppTheme.brandGreenDeep,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
-                const SizedBox(height: 4),
-              ],
-            ),
+              ),
+          ),
         ),
       ),
     );
@@ -598,11 +610,114 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
     );
   }
 
+  // ── Floor Picker ───────────────────────────────────────────
+
+  void _showFloorPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => GlassContainer(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: AppTheme.textPrimary.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Select Floor',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ..._floors.asMap().entries.map((entry) {
+              final index = entry.key;
+              final floor = entry.value;
+              final isActive = _currentFloorIndex == index;
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _currentFloorIndex = index);
+                  Navigator.pop(ctx);
+                },
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? AppTheme.brandGreen.withOpacity(0.12)
+                        : Colors.black.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(14),
+                    border: isActive
+                        ? Border.all(color: AppTheme.brandGreen, width: 1.5)
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.layers_outlined,
+                        size: 20,
+                        color: isActive ? AppTheme.brandGreen : AppTheme.textPrimary.withOpacity(0.5),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        floor,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                          color: isActive ? AppTheme.brandGreen : AppTheme.textPrimary,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (isActive)
+                        const Icon(Icons.check_circle, color: AppTheme.brandGreen, size: 20),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Booking Sheet ──────────────────────────────────────────
 
   void _showBookingSheet(BuildContext context, AppState appState) {
     int selectedDuration = 1;
     final durations = [1, 2, 3, 4, 6, 8];
+    DateTime selectedTime = DateTime.now();
+
+    String formatTime(DateTime t) {
+      final now = DateTime.now();
+      final isToday = t.day == now.day && t.month == now.month && t.year == now.year;
+      final isTomorrow = t.day == now.add(const Duration(days: 1)).day && t.month == now.add(const Duration(days: 1)).month;
+      
+      String dayPrefix = isToday ? 'Today' : (isTomorrow ? 'Tomorrow' : '${t.month}/${t.day}');
+      
+      int h = t.hour;
+      String period = h >= 12 ? 'PM' : 'AM';
+      if (h == 0) {
+        h = 12;
+      } else if (h > 12) {
+        h -= 12;
+      }
+      
+      String m = t.minute.toString().padLeft(2, '0');
+      
+      return '$dayPrefix, $h:$m $period';
+    }
 
     showModalBottomSheet(
       context: context,
@@ -675,6 +790,79 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                             ),
                             Text(
                               appState.selectedPaymentMethod?.maskedDetails ?? 'Pay upon arrival',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textPrimary.withOpacity(0.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        const Text(
+                          'Change',
+                          style: TextStyle(
+                            color: AppTheme.brandGreen,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Arrival Time
+                Text('Arrival Time',
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelLarge
+                        ?.copyWith(fontSize: 14)),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () async {
+                    final TimeOfDay? picked = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(selectedTime),
+                    );
+                    if (picked != null) {
+                      final now = DateTime.now();
+                      setSheetState(() {
+                        selectedTime = DateTime(
+                          now.year, now.month, now.day,
+                          picked.hour, picked.minute,
+                        );
+                        // If picked time is strictly earlier than now (within margin), assume tomorrow
+                        if (selectedTime.isBefore(now.subtract(const Duration(minutes: 5)))) {
+                          selectedTime = selectedTime.add(const Duration(days: 1));
+                        }
+                      });
+                    }
+                  },
+                  child: GlassContainer(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: AppTheme.brandGreen.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.access_time, color: AppTheme.brandGreen, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              formatTime(selectedTime),
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                            ),
+                            Text(
+                              'Tap to change arrival time',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.textPrimary.withOpacity(0.5),
@@ -777,7 +965,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                     final price = totalPrice;
                     final dur = selectedDuration;
 
-                    appState.confirmBooking(selectedDuration);
+                    appState.confirmBooking(selectedDuration, startTime: selectedTime);
                     Navigator.pop(ctx); // close sheet
                     Navigator.pushReplacement(
                       context,

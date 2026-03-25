@@ -35,9 +35,25 @@ class SupabaseService {
         .from('parking_spots')
         .select()
         .eq('location_id', locationId)
+        .order('floor')
         .order('row_letter')
         .order('spot_number');
     return (data as List).map((json) => ParkingSpot.fromJson(json)).toList();
+  }
+
+  /// Get a real-time stream of spots for a location
+  Stream<List<ParkingSpot>> getSpotsStream(String locationId) {
+    return _client
+        .from('parking_spots')
+        .stream(primaryKey: ['id'])
+        .eq('location_id', locationId)
+        .order('floor')
+        .order('row_letter')
+        .order('spot_number')
+        .map((data) {
+          print('Supabase Realtime: Received ${data.length} spots for $locationId');
+          return data.map((json) => ParkingSpot.fromJson(json)).toList();
+        });
   }
 
   /// Update spot status (available / occupied)
@@ -67,6 +83,7 @@ class SupabaseService {
   Future<void> createBooking({
     required String locationId,
     required String spotId,
+    required DateTime startTime,
     required int durationHours,
     required double totalPrice,
     String? paymentMethod,
@@ -78,6 +95,7 @@ class SupabaseService {
       'user_id': userId,
       'location_id': locationId,
       'spot_id': spotId,
+      'booking_date': startTime.toIso8601String(),
       'duration_hours': durationHours,
       'total_price': totalPrice,
       'status': 'active',

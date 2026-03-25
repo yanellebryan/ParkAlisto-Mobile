@@ -1,0 +1,122 @@
+:root {
+  --background: #ffffff;
+  /* Brand Colors Extracted from Flutter Theme */
+  --primary: #34C759;
+  --primary-deep: #248A3D;
+  --primary-light: #D4F5E2;
+  --primary-glow: rgba(52, 199, 89, 0.18);
+  
+  /* Semantic */
+  --success: #34C759;
+  --warning: #FF9500;
+  --danger: #FF3B30;
+  
+  /* Text */
+  --text-main: rgba(28, 28, 30, 0.92);  /* #1C1C1E 92% */
+  --text-muted: rgba(28, 28, 30, 0.55); /* #1C1C1E 55% */
+  
+  /* Glass Surfaces */
+  --surface-top: rgba(255, 255, 255, 0.90);
+  --surface-bottom: rgba(255, 255, 255, 0.55);
+  --surface-border: rgba(255, 255, 255, 0.80);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text-main);
+  font-family: var(--font-inter), -apple-system, sans-serif;
+  min-height: 100vh;
+  /* Replicate dynamic mesh background using heavy radial gradients */
+  background-image: 
+    radial-gradient(circle at 10% 20%, #D4F5E2 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, #EAF9F0 0%, transparent 35%),
+    radial-gradient(circle at 30% 80%, #E8F5FF 0%, transparent 30%),
+    radial-gradient(circle at 70% 30%, #DFF2EB 0%, transparent 40%),
+    radial-gradient(circle at 50% 10%, #F0FBF5 0%, transparent 20%);
+  background-attachment: fixed;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul {
+  list-style: none;
+}
+
+/* Glassmorphism Utilities strictly matching Flutter GlassContainer */
+.glass {
+  background: linear-gradient(135deg, var(--surface-top) 0%, var(--surface-bottom) 40%);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid var(--surface-border);
+  border-radius: 20px;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 20px 48px rgba(0, 0, 0, 0.05);
+}
+
+.glass-badge {
+  background: var(--primary-light);
+  border: 1px solid rgba(52, 199, 89, 0.3);
+  color: var(--primary-deep);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(8px);
+  text-transform: uppercase;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.danger-badge {
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  color: var(--danger);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(8px);
+  text-transform: uppercase;
+}
+
+.btn {
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text-main);
+  border: 1px solid var(--surface-border);
+  padding: 8px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.04);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(52, 199, 89, 0.4);
+}
+
+.btn-primary:hover {
+  background: var(--primary-deep);
+}

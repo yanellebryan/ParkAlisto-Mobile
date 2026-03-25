@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/parking_location.dart';
 import '../models/parking_spot.dart';
@@ -9,6 +10,7 @@ import 'mock_data.dart';
 
 class AppState extends ChangeNotifier {
   final SupabaseService _supabase = SupabaseService();
+  StreamSubscription? _spotSubscription;
 
   String selectedCity = 'Bacolod City';
   String selectedCategory = 'car';
@@ -27,6 +29,12 @@ class AppState extends ChangeNotifier {
   List<ParkingSpot> _spots = [];
   bool isLoading = false;
   String? errorMessage;
+
+  @override
+  void dispose() {
+    _spotSubscription?.cancel();
+    super.dispose();
+  }
 
   // ── User Info ─────────────────────────────────────────────
   String get userName => _supabase.userName;
@@ -96,16 +104,21 @@ class AppState extends ChangeNotifier {
 
   // ── Load spots for a location ─────────────────────────────
   Future<void> loadSpots(String locationId) async {
+    _spotSubscription?.cancel();
+    
     if (locationId.startsWith('loc_')) {
       _spots = []; // Use local mock spots from the location object
       notifyListeners();
       return;
     }
+    
     try {
-      _spots = await _supabase.getSpotsForLocation(locationId);
-      notifyListeners();
+      _spotSubscription = _supabase.getSpotsStream(locationId).listen((spots) {
+        _spots = spots;
+        notifyListeners();
+      });
     } catch (e) {
-      AppLogger.error('Error loading spots', e);
+      AppLogger.error('Error loading spots stream', e);
       _spots = [];
       notifyListeners();
     }
@@ -170,15 +183,17 @@ class AppState extends ChangeNotifier {
 
   /// Confirm a booking — saves to Supabase if logged in,
   /// otherwise falls back to local-only.
-  Future<void> confirmBooking(int durationHours) async {
+  Future<void> confirmBooking(int durationHours, {DateTime? startTime}) async {
     if (selectedLocation == null || selectedSpot == null) return;
+
+    final start = startTime ?? DateTime.now();
 
     final bookingId = 'PRK-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
     final newBooking = Booking(
       id: bookingId,
       location: selectedLocation!,
       spot: selectedSpot!,
-      dateTime: DateTime.now(),
+      dateTime: start,
       durationHours: durationHours,
       status: 'active',
       paymentMethod: selectedPaymentMethod?.name ?? 'Cash',
@@ -201,6 +216,7 @@ class AppState extends ChangeNotifier {
           await _supabase.createBooking(
             locationId: selectedLocation!.id,
             spotId: selectedSpot!.id,
+            startTime: start,
             durationHours: durationHours,
             totalPrice: selectedLocation!.pricePerHour * durationHours,
             paymentMethod: selectedPaymentMethod?.name ?? 'Cash',
