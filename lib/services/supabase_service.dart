@@ -3,6 +3,7 @@ import '../models/parking_location.dart';
 import '../models/parking_spot.dart';
 import '../models/booking.dart';
 import '../models/payment_method.dart';
+import 'logger.dart';
 
 /// Service that handles all Supabase database operations.
 class SupabaseService {
@@ -79,11 +80,24 @@ class SupabaseService {
     return (data as List).map((json) => Booking.fromJson(json)).toList();
   }
 
+  /// Helper to ensure timestamps are sent with the Asia/Manila (+08:00) offset
+  String _toPstIsoString(DateTime? dt) {
+    if (dt == null) return '';
+    final iso = dt.toIso8601String();
+    // If it already has a timezone indicator (Z or +/-), return as is
+    if (iso.contains('Z') || iso.contains(RegExp(r'[+-]\d{2}:\d{2}'))) {
+      return iso;
+    }
+    // Otherwise, assume local (PST context) and append the offset
+    return '$iso+08:00';
+  }
+
   /// Create a new booking
   Future<void> createBooking({
     required String locationId,
     required String spotId,
     required DateTime startTime,
+    DateTime? arrivalTime,
     required int durationHours,
     required double totalPrice,
     String? paymentMethod,
@@ -91,11 +105,13 @@ class SupabaseService {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User not logged in');
 
+    AppLogger.info('Supabase: Inserting booking with arrival_time: ${_toPstIsoString(arrivalTime)}');
     await _client.from('bookings').insert({
       'user_id': userId,
       'location_id': locationId,
       'spot_id': spotId,
-      'booking_date': startTime.toIso8601String(),
+      'booking_date': _toPstIsoString(startTime),
+      'arrival_time': _toPstIsoString(arrivalTime),
       'duration_hours': durationHours,
       'total_price': totalPrice,
       'status': 'active',

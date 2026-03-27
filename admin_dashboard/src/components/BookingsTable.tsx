@@ -149,7 +149,8 @@ export default function BookingsTable() {
                 <th>Booking Code</th>
                 <th>Parking Spot</th>
                 <th>Floor</th>
-                <th>Time & Date</th>
+                <th>Booked At</th>
+                <th>Arrival Time</th>
                 <th>Duration</th>
                 <th style={{textAlign: 'right'}}>Amount</th>
                 <th style={{textAlign: 'right'}}>Actions</th>
@@ -186,8 +187,16 @@ export default function BookingsTable() {
                     <span className="floor-badge">FL {b.parking_spots?.floor || '1'}</span>
                   </td>
                   <td className="time-display">
-                    <div className="main-time">{new Date(b.booking_date || b.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                    <div className="sub-date">{new Date(b.booking_date || b.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                    <div className="main-time">{new Date(b.created_at).toLocaleTimeString('en-PH', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Manila'})}</div>
+                    <div className="sub-date">{new Date(b.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' })}</div>
+                  </td>
+                  <td className="arrival-time-display">
+                    <div className="arrival-time" style={{fontWeight: b.arrival_time ? '700' : '400', color: b.arrival_time ? 'var(--primary-deep)' : 'rgba(0,0,0,0.4)'}}>
+                      {b.arrival_time ? new Date(b.arrival_time).toLocaleTimeString('en-PH', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Manila'}) : 'Not set'}
+                    </div>
+                    <div className="sub-date" style={{fontSize: '0.75rem', opacity: 0.6}}>
+                       {b.arrival_time ? new Date(b.arrival_time).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' }) : ''}
+                    </div>
                   </td>
                   <td className="duration-display">
                     <span className="duration-tag">{b.duration_hours}h</span>

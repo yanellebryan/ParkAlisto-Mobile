@@ -7,6 +7,7 @@ class Booking {
   final ParkingSpot spot;
   final DateTime dateTime;
   final int durationHours;
+  final DateTime? arrivalTime;
   String status; // 'active', 'completed', 'cancelled'
   final String? paymentMethod;
 
@@ -17,6 +18,7 @@ class Booking {
     required this.location,
     required this.spot,
     required this.dateTime,
+    this.arrivalTime,
     required this.durationHours,
     this.status = 'active',
     this.paymentMethod,
@@ -51,6 +53,9 @@ class Booking {
               status: SpotStatus.occupied,
             ),
       dateTime: DateTime.parse(json['booking_date'] as String),
+      arrivalTime: json['arrival_time'] != null 
+          ? DateTime.parse(json['arrival_time'] as String)
+          : null,
       durationHours: json['duration_hours'] as int,
       status: json['status'] as String,
       paymentMethod: json['payment_method'] as String?,
@@ -59,11 +64,19 @@ class Booking {
 
   /// Convert to JSON for Supabase insert (references only IDs)
   Map<String, dynamic> toJson(String userId) {
+    String toIso(DateTime? dt) {
+      if (dt == null) return '';
+      final s = dt.toIso8601String();
+      if (s.contains('Z') || s.contains('+')) return s;
+      return '$s+08:00';
+    }
+
     return {
       'user_id': userId,
       'location_id': location.id,
       'spot_id': spot.id,
-      'booking_date': dateTime.toIso8601String(),
+      'booking_date': toIso(dateTime),
+      'arrival_time': toIso(arrivalTime),
       'duration_hours': durationHours,
       'total_price': totalPrice,
       'status': status,

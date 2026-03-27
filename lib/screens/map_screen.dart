@@ -22,9 +22,9 @@ class _MapScreenState extends State<MapScreen> {
   double _currentZoom = 16.0;
   bool _iconsLoaded = false;
 
-  // Cache for pre-rendered icons
-  final Map<String, BitmapDescriptor> _fullMarkers = {};
-  BitmapDescriptor? _pinOnlyMarker;
+  // Cache for pre-rendered icons and their specific anchors
+  final Map<String, ({BitmapDescriptor icon, Offset anchor})> _markerData = {};
+  ({BitmapDescriptor icon, Offset anchor})? _pinOnlyData;
 
   @override
   void initState() {
@@ -35,11 +35,11 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _loadAllIcons() async {
     try {
       // 1. Generate the simple pin icon once
-      _pinOnlyMarker = await _generateMarkerIcon(null);
+      _pinOnlyData = await _generateMarkerIconData(null);
 
       // 2. Generate full aesthetic labels for each location
       for (var loc in MockData.parkingLocations) {
-        _fullMarkers[loc.id] = await _generateMarkerIcon(loc);
+        _markerData[loc.id] = await _generateMarkerIconData(loc);
       }
 
       if (mounted) {
@@ -52,76 +52,81 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // Generates a single bitmap descriptor containing BOTH the pin and the label
-  Future<BitmapDescriptor> _generateMarkerIcon(ParkingLocation? loc) async {
-    const double width = 360.0;
-    const double height = 180.0;
-    const double pinPadding = 10.0;
+  // Generates a bitmap descriptor AND the correct anchor for the pin tip
+  Future<({BitmapDescriptor icon, Offset anchor})> _generateMarkerIconData(ParkingLocation? loc) async {
+    // 1. MEASURE CONTENT
+    double labelWidth = 0;
+    const double labelHeight = 76.0;
+    const double pinSize = 44.0;
+    const double gap = 4.0;
     
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    
+    TextPainter? namePainter;
+    TextPainter? pricePainter;
+
     if (loc != null) {
-      // --- TEXT RENDERING (MEASURE FIRST) ---
-      final namePainter = TextPainter(
+      namePainter = TextPainter(
         text: TextSpan(
           text: loc.name,
           style: const TextStyle(
             color: AppTheme.textPrimary,
-            fontSize: 24, // High res
+            fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
         ),
         textDirection: TextDirection.ltr,
         maxLines: 1,
-      )..layout(maxWidth: width - 40); // Allow more width
+      )..layout(maxWidth: 300);
 
-      final pricePainter = TextPainter(
+      pricePainter = TextPainter(
         text: TextSpan(
           text: '₱${loc.pricePerHour.toStringAsFixed(0)}/hr',
           style: const TextStyle(
             color: AppTheme.brandGreen,
-            fontSize: 26, // High res
+            fontSize: 26,
             fontWeight: FontWeight.bold,
           ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
 
-      // Dynamic label styling
-      final double labelWidth = (namePainter.width > pricePainter.width 
+      labelWidth = (namePainter.width > pricePainter.width 
           ? namePainter.width 
-          : pricePainter.width) + 30.0; // Adding horizontal padding
-      const double labelHeight = 70.0;
-      const double centerX = width / 2;
-      const double labelTop = 30.0;
-      
-      // --- DRAW LABEL CARD ---
-      final paint = Paint()
-        ..color = Colors.white.withOpacity(0.95)
-        ..style = PaintingStyle.fill;
+          : pricePainter.width) + 32.0;
+    }
 
+    // 2. CALCULATE CANVAS SIZE
+    // We need enough room for the label, the gap, the pin, and shadows
+    final double canvasWidth = (labelWidth > pinSize ? labelWidth : pinSize) + 20.0; // + shadow room
+    final double canvasHeight = (loc != null ? labelHeight + gap : 0) + pinSize + 20.0;
+    
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final centerX = canvasWidth / 2;
+    
+    if (loc != null && namePainter != null && pricePainter != null) {
+      const double labelTop = 10.0;
+      
       // Shadow for label
       final shadowPath = Path()
         ..addRRect(RRect.fromRectAndRadius(
-          Rect.fromCenter(center: const Offset(centerX, labelTop + labelHeight / 2), width: labelWidth, height: labelHeight),
+          Rect.fromCenter(center: Offset(centerX, labelTop + labelHeight / 2), width: labelWidth, height: labelHeight),
           const Radius.circular(16),
         ));
-      canvas.drawShadow(shadowPath, Colors.black.withOpacity(0.3), 4.0, true);
+      canvas.drawShadow(shadowPath, Colors.black.withOpacity(0.25), 4.0, true);
       
       // Label Background
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromCenter(center: const Offset(centerX, labelTop + labelHeight / 2), width: labelWidth, height: labelHeight),
+          Rect.fromCenter(center: Offset(centerX, labelTop + labelHeight / 2), width: labelWidth, height: labelHeight),
           const Radius.circular(16),
         ),
-        paint,
+        Paint()..color = Colors.white.withOpacity(0.98),
       );
       
-      // Border for label
+      // Label Border
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromCenter(center: const Offset(centerX, labelTop + labelHeight / 2), width: labelWidth, height: labelHeight),
+          Rect.fromCenter(center: Offset(centerX, labelTop + labelHeight / 2), width: labelWidth, height: labelHeight),
           const Radius.circular(16),
         ),
         Paint()
@@ -130,35 +135,38 @@ class _MapScreenState extends State<MapScreen> {
           ..strokeWidth = 1.0,
       );
 
-      // Paint text centered in the now-dynamic box
       namePainter.paint(canvas, Offset(centerX - namePainter.width / 2, labelTop + 12));
       pricePainter.paint(canvas, Offset(centerX - pricePainter.width / 2, labelTop + 42));
     }
 
     // --- DRAW PIN ---
-    const double pinSize = 40.0;
-    const double pinCenterY = 140.0;
-    const double centerX = width / 2;
+    final double pinCenterY = (loc != null ? labelHeight + gap : 0) + 10.0 + pinSize/2;
 
     // Pin Shadow
-    final pinShadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.2)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
-    canvas.drawCircle(const Offset(centerX, pinCenterY + 2), pinSize/2, pinShadowPaint);
+    canvas.drawCircle(Offset(centerX, pinCenterY + 2), pinSize/2, 
+        Paint()..color = Colors.black.withOpacity(0.15)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0));
 
-    // Pin Outer Border (Green)
-    canvas.drawCircle(const Offset(centerX, pinCenterY), pinSize/2, Paint()..color = AppTheme.brandGreen);
-    
+    // Pin Outer
+    canvas.drawCircle(Offset(centerX, pinCenterY), pinSize/2, Paint()..color = AppTheme.brandGreen);
     // Pin Inner White
-    canvas.drawCircle(const Offset(centerX, pinCenterY), pinSize/2 - 4, Paint()..color = Colors.white);
-    
-    // Pin Center Dot (Green)
-    canvas.drawCircle(const Offset(centerX, pinCenterY), pinSize/2 - 10, Paint()..color = AppTheme.brandGreen);
+    canvas.drawCircle(Offset(centerX, pinCenterY), pinSize/2 - 4.0, Paint()..color = Colors.white);
+    // Pin Center Dot
+    canvas.drawCircle(Offset(centerX, pinCenterY), pinSize/2 - 10.0, Paint()..color = AppTheme.brandGreen);
 
+    // 3. EXPORT IMAGE
     final picture = recorder.endRecording();
-    final img = await picture.toImage(width.toInt(), height.toInt());
+    final img = await picture.toImage(canvasWidth.toInt(), canvasHeight.toInt());
     final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+    
+    // 4. CALCULATE ANCHOR
+    // The anchor should be at the very tip (bottom) of the pin
+    final double tipY = pinCenterY + pinSize/2;
+    final Offset anchor = Offset(0.5, tipY / canvasHeight);
+
+    return (
+      icon: BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List()),
+      anchor: anchor,
+    );
   }
 
   void _onMapCreated(GoogleMapController controller) {
@@ -186,14 +194,13 @@ class _MapScreenState extends State<MapScreen> {
     return locations
         .where((loc) => loc.latitude != null && loc.longitude != null)
         .map((loc) {
+      final data = showLabels ? _markerData[loc.id] : _pinOnlyData;
+      
       return Marker(
         markerId: MarkerId(loc.id),
         position: LatLng(loc.latitude!, loc.longitude!),
-        icon: showLabels 
-            ? (_fullMarkers[loc.id] ?? BitmapDescriptor.defaultMarker)
-            : (_pinOnlyMarker ?? BitmapDescriptor.defaultMarker),
-        // Anchoring at the center horizontal and bottom (pin tip)
-        anchor: const Offset(0.5, 0.78), 
+        icon: data?.icon ?? BitmapDescriptor.defaultMarker,
+        anchor: data?.anchor ?? const Offset(0.5, 1.0),
         onTap: () => _navigateToDetails(context, appState, loc),
       );
     }).toSet();
