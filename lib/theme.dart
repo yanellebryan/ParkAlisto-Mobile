@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   // Brand Green Palette (Primary)
   static const Color brandGreen = Color(0xFF34C759);
+  static const Color brandGreenStrong = Color(0xFF2DB87A); // Deeper teal for tappability
   static const Color brandGreenDeep = Color(0xFF248A3D);
   static const Color brandGreenLight = Color(0xFFD4F5E2);
   static const Color brandGreenGlow = Color(0x3034C759); // 18% opacity

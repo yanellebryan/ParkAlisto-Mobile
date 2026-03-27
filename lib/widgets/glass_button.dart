@@ -69,7 +69,7 @@ class _GlassButtonState extends State<GlassButton> with SingleTickerProviderStat
   Color _getTintColor(BuildContext context) {
     switch (widget.variant) {
       case GlassButtonVariant.primary:
-        return AppTheme.brandGreen.withOpacity(0.18);
+        return AppTheme.brandGreenStrong.withOpacity(0.18);
       case GlassButtonVariant.destructive:
         return AppTheme.destructiveDark.withOpacity(0.3); // Red — UNCHANGED
       case GlassButtonVariant.ghost:
@@ -80,7 +80,7 @@ class _GlassButtonState extends State<GlassButton> with SingleTickerProviderStat
   Color _getBorderColor(BuildContext context) {
     switch (widget.variant) {
       case GlassButtonVariant.primary:
-        return AppTheme.brandGreen.withOpacity(0.45);
+        return AppTheme.brandGreenStrong.withOpacity(0.45);
       case GlassButtonVariant.destructive:
         return AppTheme.destructiveDark.withOpacity(0.5);
       case GlassButtonVariant.ghost:
@@ -91,7 +91,7 @@ class _GlassButtonState extends State<GlassButton> with SingleTickerProviderStat
   Color _getLabelColor(BuildContext context) {
     switch (widget.variant) {
       case GlassButtonVariant.primary:
-        return AppTheme.brandGreenDeep;
+        return AppTheme.brandGreenStrong;
       case GlassButtonVariant.destructive:
         return AppTheme.destructiveDark;
       case GlassButtonVariant.ghost:
