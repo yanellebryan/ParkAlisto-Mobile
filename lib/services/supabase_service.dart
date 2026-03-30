@@ -81,8 +81,8 @@ class SupabaseService {
   }
 
   /// Helper to ensure timestamps are sent with the Asia/Manila (+08:00) offset
-  String _toPstIsoString(DateTime? dt) {
-    if (dt == null) return '';
+  String? _toPstIsoString(DateTime? dt) {
+    if (dt == null) return null;
     final iso = dt.toIso8601String();
     // If it already has a timezone indicator (Z or +/-), return as is
     if (iso.contains('Z') || iso.contains(RegExp(r'[+-]\d{2}:\d{2}'))) {

@@ -221,8 +221,9 @@ class AppState extends ChangeNotifier {
             totalPrice: selectedLocation!.pricePerHour * durationHours,
             paymentMethod: selectedPaymentMethod?.name ?? 'Cash',
           );
+          // The real-time stream in loadSpots() will automatically
+          // pick up the 'occupied' status change. No need to loadSpots() again.
           await loadBookings();
-          await loadSpots(selectedLocation!.id);
         }
       } catch (e) {
         AppLogger.error('Error creating booking', e);
@@ -233,7 +234,7 @@ class AppState extends ChangeNotifier {
       myBookings.insert(0, newBooking);
     }
 
-    selectedSpot!.status = SpotStatus.occupied;
+    // Clear selection. The status change will be handled by the Realtime stream.
     selectedSpot = null;
     notifyListeners();
   }

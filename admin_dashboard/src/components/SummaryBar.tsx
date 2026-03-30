@@ -33,7 +33,8 @@ export default function SummaryBar() {
     };
 
     fetchCounts();
-
+    
+    // 1. WebSocket Channel (Realtime Push)
     const channel = supabase
       .channel('summary_stats_monitoring')
       .on('postgres_changes', { 
@@ -45,8 +46,14 @@ export default function SummaryBar() {
       })
       .subscribe();
 
+    // 2. Poll fallback (Pull every 5 seconds)
+    const pollInterval = setInterval(() => {
+      fetchCounts();
+    }, 5000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, []);
 

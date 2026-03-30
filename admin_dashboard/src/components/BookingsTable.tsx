@@ -51,7 +51,7 @@ export default function BookingsTable() {
 
     fetchBookings();
 
-    // 2. Subscribe to real-time changes
+    // 1. WebSocket Channel (Realtime Push)
     const channel = supabase
       .channel('usls_bookings_monitoring')
       .on('postgres_changes', { 
@@ -63,8 +63,14 @@ export default function BookingsTable() {
       })
       .subscribe();
 
+    // 2. Poll fallback (Pull every 5 seconds)
+    const pollInterval = setInterval(() => {
+      fetchBookings();
+    }, 5000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, []);
 
