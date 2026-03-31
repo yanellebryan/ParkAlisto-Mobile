@@ -8,6 +8,8 @@ export default function BookingsTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [copyingId, setCopyingId] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
 
   useEffect(() => {
     // 1. Fetch initial bookings with joined data
@@ -76,23 +78,51 @@ export default function BookingsTable() {
 
   const handleConfirm = async (bookingId: string) => {
     try {
+      setActionLoadingId(bookingId);
       const { error } = await supabase
         .from('bookings')
-        .update({ status: 'confirmed' })
+        .update({ status: 'confirmed' }) // Store as lowercase
         .eq('id', bookingId);
       
       if (error) throw error;
-      // Real-time will trigger refetch
     } catch (err) {
       console.error('Error confirming booking:', err);
+      alert('Failed to confirm booking. Please try again.');
+    } finally {
+      setActionLoadingId(null);
     }
   }
 
   const handleCancel = async (bookingId: string, spotId: string) => {
-     if (!confirm('Are you sure you want to cancel this booking/free the spot?')) return;
-     await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
-     await supabase.from('parking_spots').update({ status: 'available' }).eq('id', spotId);
+    if (!confirm('Are you sure you want to cancel this booking/free the spot?')) return;
+    
+    try {
+      setActionLoadingId(bookingId);
+      
+      // 1. Update booking status
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update({ status: 'cancelled' }) // Store as lowercase
+        .eq('id', bookingId);
+      
+      if (bookingError) throw bookingError;
+
+      // 2. Free the spot
+      const { error: spotError } = await supabase
+        .from('parking_spots')
+        .update({ status: 'available' })
+        .eq('id', spotId);
+      
+      if (spotError) throw spotError;
+
+    } catch (err) {
+      console.error('Error cancelling booking:', err);
+      alert('Failed to cancel booking. Please try again.');
+    } finally {
+      setActionLoadingId(null);
+    }
   }
+
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -102,14 +132,19 @@ export default function BookingsTable() {
 
   // Filtered and searched results
   const filteredBookings = bookings.filter(b => {
+    const bStatus = (b.status || '').toLowerCase();
+    const bName = (b.full_name || '').toLowerCase();
+    const bId = (b.id || '').toLowerCase();
+
     const matchesSearch = 
-      b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (b.full_name && b.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
+      bId.includes(searchTerm.toLowerCase()) ||
+      bName.includes(searchTerm.toLowerCase());
     
-    const matchesStatus = filterStatus === 'all' || b.status === filterStatus;
+    const matchesStatus = filterStatus === 'all' || bStatus === filterStatus;
     
     return matchesSearch && matchesStatus;
   });
+
 
   return (
     <div className="bookings-container fade-in-up delay-2">
@@ -163,14 +198,17 @@ export default function BookingsTable() {
               </tr>
             </thead>
             <tbody>
-              {filteredBookings.map(b => (
-                 <tr key={b.id} className={`booking-row ${b.status === 'active' || b.status === 'confirmed' ? 'row-active' : ''}`}>
-                  <td>
-                    <span className={`status-pill ${b.status}`}>
-                      {b.status === 'active' && <span className="mini-pulse"></span>}
-                      {b.status.toUpperCase()}
-                    </span>
-                  </td>
+               {filteredBookings.map(b => {
+                 const statusLower = (b.status || '').toLowerCase();
+                 return (
+                  <tr key={b.id} className={`booking-row ${statusLower === 'active' || statusLower === 'confirmed' ? 'row-active' : ''}`}>
+                   <td>
+                     <span className={`status-pill ${statusLower}`}>
+                       {statusLower === 'active' && <span className="mini-pulse"></span>}
+                       {statusLower.toUpperCase()}
+                     </span>
+                   </td>
+
                   <td className="code-cell">
                     <div className="code-container" title={b.id}>
                       <span className="code-text">...{b.id.slice(-8)}</span>
@@ -213,27 +251,29 @@ export default function BookingsTable() {
                   </td>
                   <td style={{textAlign: 'right'}}>
                     <div className="labeled-actions">
-                      {b.status === 'active' && (
+                      {(statusLower === 'active') && (
                         <button 
                           className="btn-action-labeled btn-confirm-labeled"
                           onClick={() => handleConfirm(b.id)}
+                          disabled={actionLoadingId === b.id}
                         >
-                          <span className="btn-icon">✓</span>
-                          <span>Confirm</span>
+                          <span className="btn-icon">{actionLoadingId === b.id ? '⏳' : '✓'}</span>
+                          <span>{actionLoadingId === b.id ? 'Saving...' : 'Confirm'}</span>
                         </button>
                       )}
                       <button 
                         className="btn-action-labeled btn-cancel-labeled"
                         onClick={() => handleCancel(b.id, b.spot_id)}
-                        disabled={b.status === 'cancelled' || b.status === 'confirmed'}
+                        disabled={statusLower === 'cancelled' || statusLower === 'confirmed' || actionLoadingId === b.id}
                       >
-                        <span className="btn-icon">✕</span>
+                        <span className="btn-icon">{actionLoadingId === b.id ? '⏳' : '✕'}</span>
                         <span>Cancel</span>
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
+
               {filteredBookings.length === 0 && (
                 <tr>
                   <td colSpan={8} className="empty-state">
