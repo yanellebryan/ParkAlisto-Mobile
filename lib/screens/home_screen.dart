@@ -51,6 +51,13 @@ class _HomeScreenState extends State<HomeScreen> {
       locations.sort((a, b) => b.availableSpots.compareTo(a.availableSpots));
     }
 
+    // Pin University of St. La Salle Parking to top
+    final uslsIndex = locations.indexWhere((loc) => loc.name.contains('University of St. La Salle'));
+    if (uslsIndex != -1) {
+      final usls = locations.removeAt(uslsIndex);
+      locations.insert(0, usls);
+    }
+
     return DynamicMeshBackground(
       child: SafeArea(
         bottom: false,
@@ -178,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         colorBlendMode: BlendMode.modulate,
                       ),
                       'Car',
-                          '${appState.filteredLocations.length} places',
+                          '${appState.getCategoryCount('car')} places',
                           appState.selectedCategory == 'car',
                           'car')),
                   const SizedBox(width: 12),
@@ -191,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ? AppTheme.brandGreen
                                   : AppTheme.textPrimary.withOpacity(0.6)),
                           'Motorcycle',
-                          '${appState.filteredLocations.length} places',
+                          '${appState.getCategoryCount('motorcycle')} places',
                           appState.selectedCategory == 'motorcycle',
                           'motorcycle')),
                   const SizedBox(width: 12),
@@ -204,40 +211,46 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ? AppTheme.brandGreen
                                   : AppTheme.textPrimary.withOpacity(0.6)),
                           'Truck',
-                          '${appState.filteredLocations.length} places',
+                          '${appState.getCategoryCount('truck')} places',
                           appState.selectedCategory == 'truck',
                           'truck')),
                 ],
               ),
               const SizedBox(height: 32),
 
-              // ── Parking Location Cards ─────────────────────
-              if (locations.isNotEmpty) ...[
-                Text('Available Parking',
-                    style: theme.textTheme.headlineMedium
-                        ?.copyWith(fontSize: 18)),
-                const SizedBox(height: 16),
-                ...locations
-                    .map((loc) => _buildLocationCard(context, loc))
-                    .toList(),
-                const SizedBox(height: 32),
-              ],
-
-              // ── Recent Places ──────────────────────────────
-              Text('Recent Place',
-                  style:
-                      theme.textTheme.headlineMedium?.copyWith(fontSize: 18)),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 220,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  clipBehavior: Clip.none,
-                  children: appState.filteredLocations.take(3)
-                      .map((loc) => _buildRecentPlaceCard(context, loc))
+              // ── Selection Content ──────────────────────────
+              if (appState.selectedCategory == 'car') ...[
+                // ── Parking Location Cards ───────────────────
+                if (locations.isNotEmpty) ...[
+                  Text('Available Parking',
+                      style: theme.textTheme.headlineMedium
+                          ?.copyWith(fontSize: 18)),
+                  const SizedBox(height: 16),
+                  ...locations
+                      .map((loc) => _buildLocationCard(context, loc))
                       .toList(),
+                  const SizedBox(height: 32),
+                ],
+
+                // ── Recent Places ────────────────────────────
+                Text('Recent Place',
+                    style:
+                        theme.textTheme.headlineMedium?.copyWith(fontSize: 18)),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 220,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.none,
+                    children: appState.filteredLocations.take(3)
+                        .map((loc) => _buildRecentPlaceCard(context, loc))
+                        .toList(),
+                  ),
                 ),
-              ),
+              ] else ...[
+                // ── Coming Soon Section ──────────────────────
+                _buildComingSoonSection(context),
+              ],
               const SizedBox(height: 100),
             ],
           ),
@@ -250,33 +263,75 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildCategoryCard(BuildContext context, Widget icon, String title,
       String subtitle, bool isSelected, String category) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: () => context.read<AppState>().setCategory(category),
-      child: GlassContainer(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        borderRadius: BorderRadius.circular(16),
-        opacity: isSelected ? 0.65 : 0.45,
-        border: isSelected
-            ? Border.all(
-                color: AppTheme.brandGreen.withOpacity(0.8), width: 1.5)
-            : null,
-        child: Column(
-          children: [
-            icon,
-            const SizedBox(height: 12),
-            Text(title, style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontSize: 12,
-                    color: isSelected
-                        ? AppTheme.brandGreen.withOpacity(0.8)
-                        : AppTheme.textPrimary.withOpacity(0.4),
-                  ),
-            ),
-          ],
+      child: AspectRatio(
+        aspectRatio: 1.0,
+        child: GlassContainer(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          borderRadius: BorderRadius.circular(16),
+          opacity: isSelected ? 0.70 : 0.45,
+          border: isSelected
+              ? Border.all(
+                  color: AppTheme.brandGreen.withOpacity(0.8), width: 1.5)
+              : Border.all(color: AppTheme.textPrimary.withOpacity(0.05)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              icon,
+              const SizedBox(height: 12),
+              Text(title, 
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelLarge?.copyWith(fontSize: 13, height: 1.1)),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 11,
+                      color: isSelected
+                          ? AppTheme.brandGreen.withOpacity(0.8)
+                          : AppTheme.textPrimary.withOpacity(0.4),
+                    ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildComingSoonSection(BuildContext context) {
+    final theme = Theme.of(context);
+    return GlassContainer(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      borderRadius: BorderRadius.circular(24),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppTheme.brandGreen.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.stars_rounded, 
+                size: 48, color: AppTheme.brandGreen.withOpacity(0.8)),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Coming Soon',
+            style: theme.textTheme.headlineLarge?.copyWith(fontSize: 22),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'This vehicle category is not yet available. Support for this option will be added in a future update.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+          ),
+        ],
       ),
     );
   }
