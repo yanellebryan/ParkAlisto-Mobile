@@ -25,7 +25,8 @@ class AppState extends ChangeNotifier {
   bool requireConfirmation = false;
 
   // ── Data loaded from Supabase ─────────────────────────────
-  List<ParkingLocation> _locations = [];
+  // ── Data loaded from Supabase (by category) ──────────────
+  final Map<String, List<ParkingLocation>> _categoryLocations = {};
   List<ParkingSpot> _spots = [];
   bool isLoading = false;
   String? errorMessage;
@@ -41,12 +42,19 @@ class AppState extends ChangeNotifier {
   String get userEmail => _supabase.userEmail;
 
   // ── Filtered locations by category ────────────────────────
-  List<ParkingLocation> get filteredLocations {
+  List<ParkingLocation> get filteredLocations => _getFilteredLocationsFor(selectedCategory);
+
+  /// Get count of locations for a specific category, independent of current selection.
+  int getCategoryCount(String category) {
+    if (category == 'motorcycle' || category == 'truck') return 0;
+    return _getFilteredLocationsFor(category).length;
+  }
+
+  List<ParkingLocation> _getFilteredLocationsFor(String category) {
     final mockMatches = MockData.parkingLocations
-        .where((loc) => loc.category == selectedCategory)
+        .where((loc) => loc.category == category)
         .toList();
 
-    // Aggressive deduplication by normalized name
     String normalize(String name) {
       final n = name.toLowerCase();
       if (n.contains('ayala')) return 'ayala';
@@ -56,18 +64,16 @@ class AppState extends ChangeNotifier {
       return n;
     }
 
-    // Start with mock data (the "new versions" the user wants)
     final Map<String, ParkingLocation> uniqueByNormalizedName = {};
     for (var loc in mockMatches) {
       uniqueByNormalizedName[normalize(loc.name)] = loc;
     }
 
-    // Add Supabase data. If we match a mock, ADOPT the Supabase ID.
-    if (_locations.isNotEmpty) {
-      for (var loc in _locations) {
+    final supabaseMatches = _categoryLocations[category] ?? [];
+    if (supabaseMatches.isNotEmpty) {
+      for (var loc in supabaseMatches) {
         final norm = normalize(loc.name);
         if (uniqueByNormalizedName.containsKey(norm)) {
-          // Adopt the real UUID from Supabase for this mock
           final mock = uniqueByNormalizedName[norm]!;
           uniqueByNormalizedName[norm] = mock.copyWith(id: loc.id);
         } else {
@@ -83,14 +89,16 @@ class AppState extends ChangeNotifier {
   List<ParkingSpot> get currentSpots => _spots;
 
   // ── Load locations from Supabase ──────────────────────────
-  Future<void> loadLocations() async {
+  Future<void> loadLocations({String? category}) async {
+    final cat = category ?? selectedCategory;
     isLoading = true;
     errorMessage = null;
     notifyListeners();
 
     try {
-      _locations =
-          await _supabase.getLocations(category: selectedCategory);
+      final results = await _supabase.getLocations(category: cat);
+      _categoryLocations[cat] = results;
+      
       isLoading = false;
       loadPaymentMethods(); // Load payments too
       notifyListeners();
