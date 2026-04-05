@@ -82,16 +82,37 @@ export default function QRScanModal({ onClose }: QRScanModalProps) {
         const scanner = new Html5Qrcode('qr-scan-viewport');
         html5QrCodeRef.current = scanner;
 
-        await scanner.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 240, height: 240 } },
-          async (decoded: string) => {
-            await stopCamera();
-            const trimmed = decoded.trim().toUpperCase();
-            await lookupBooking(trimmed);
-          },
-          () => { } // per-frame errors — ignore
-        );
+        // Try environment camera first (good for mobile)
+        try {
+          await scanner.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 240, height: 240 } },
+            async (decoded: string) => {
+              await stopCamera();
+              const trimmed = decoded.trim().toUpperCase();
+              await lookupBooking(trimmed);
+            },
+            () => { } // per-frame errors — ignore
+          );
+        } catch (envError: any) {
+          if (cancelled) return;
+          // Fall back to the first available camera (webcams)
+          const cameras = await Html5Qrcode.getCameras();
+          if (cameras && cameras.length > 0) {
+            await scanner.start(
+              cameras[0].id,
+              { fps: 10, qrbox: { width: 240, height: 240 } },
+              async (decoded: string) => {
+                await stopCamera();
+                const trimmed = decoded.trim().toUpperCase();
+                await lookupBooking(trimmed);
+              },
+              () => { }
+            );
+          } else {
+            throw envError; // No cameras found, throw original error
+          }
+        }
 
         if (!cancelled) {
           scannerStartedRef.current = true;
