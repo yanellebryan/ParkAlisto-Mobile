@@ -303,7 +303,7 @@
 /* Summary Bar */
 .summary-bar {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 32px;
 }
 
@@ -337,6 +337,7 @@
 }
 
 .summary-item.active .summary-value { color: var(--primary-deep); }
+.summary-item.completed .summary-value { color: #007AFF; }
 .summary-item.cancelled .summary-value { color: var(--danger); }
 
 /* Table wrapper with card effect */
@@ -497,7 +498,7 @@
 }
 
 .status-pill.active { background: rgba(52, 199, 89, 0.1); color: var(--primary-deep); }
-.status-pill.confirmed { background: rgba(0, 122, 255, 0.1); color: #007AFF; }
+.status-pill.completed { background: rgba(0, 122, 255, 0.1); color: #007AFF; }
 .status-pill.cancelled { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
 .status-pill.pending { background: rgba(255, 149, 0, 0.1); color: #FF9500; }
 
