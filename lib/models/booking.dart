@@ -74,9 +74,9 @@ class Booking {
               number: 0,
               status: SpotStatus.occupied,
             ),
-      dateTime: DateTime.parse(json['booking_date'] as String),
+      dateTime: DateTime.parse(json['booking_date'] as String).toLocal(),
       arrivalTime: json['arrival_time'] != null
-          ? DateTime.parse(json['arrival_time'] as String)
+          ? DateTime.parse(json['arrival_time'] as String).toLocal()
           : null,
       durationHours: json['duration_hours'] as int,
       status: json['status'] as String,
@@ -85,7 +85,7 @@ class Booking {
       cancellationReason: json['cancellation_reason'] as String?,
       checkedIn: (json['checked_in'] as bool?) ?? false,
       checkedInAt: json['checked_in_at'] != null
-          ? DateTime.parse(json['checked_in_at'] as String)
+          ? DateTime.parse(json['checked_in_at'] as String).toLocal()
           : null,
     );
   }
