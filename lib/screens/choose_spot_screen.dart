@@ -724,7 +724,7 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setSheetState) {
+        builder: (sheetContext, setSheetState) {
           final loc = appState.selectedLocation!;
           final spot = appState.selectedSpot!;
           final totalPrice = loc.pricePerHour * selectedDuration;
@@ -971,6 +971,8 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                       dur,
                       startTime: capturedTime,
                     );
+
+                    if (!context.mounted) return;
 
                     Navigator.pushReplacement(
                       context,

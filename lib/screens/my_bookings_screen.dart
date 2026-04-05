@@ -19,11 +19,12 @@ class MyBookingsScreen extends StatefulWidget {
 
 class _MyBookingsScreenState extends State<MyBookingsScreen> {
   Timer? _pollTimer;
+  String? _autoNavigatedSessionId; // tracks which session we auto-navigated to
 
   @override
   void initState() {
     super.initState();
-    // Poll every 10s to catch check-in updates if realtime misses them
+    // Poll every 10s so check-in is detected even without realtime
     _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (mounted) context.read<AppState>().loadBookings();
     });
@@ -39,8 +40,32 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final theme = Theme.of(context);
-    final bookings = appState.myBookings;
     final activeSession = appState.activeCheckedInBooking;
+
+    // Auto-navigate to ActiveParkingScreen when a new check-in is detected
+    if (activeSession != null && _autoNavigatedSessionId != activeSession.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        // Only navigate if this session wasn't already navigated to
+        if (_autoNavigatedSessionId != activeSession.id) {
+          setState(() => _autoNavigatedSessionId = activeSession.id);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ActiveParkingScreen(booking: activeSession),
+            ),
+          );
+        }
+      });
+    } else if (activeSession == null) {
+      // Reset when session ends so a future check-in triggers again
+      _autoNavigatedSessionId = null;
+    }
+
+    // Filter out active+checked-in booking from the list (shown in ActiveParkingScreen instead)
+    final bookings = appState.myBookings
+        .where((b) => !(b.status == 'active' && b.checkedIn))
+        .toList();
 
     return DynamicMeshBackground(
       child: SafeArea(
