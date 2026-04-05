@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import '../components/components.css';
+import '@/components/components.css';
 
 interface ScannedBooking {
   id: string;
