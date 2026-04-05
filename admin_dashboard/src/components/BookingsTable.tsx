@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import QRScanModal from './QRScanModal';
 import './components.css';
 
 export default function BookingsTable() {
@@ -12,7 +11,6 @@ export default function BookingsTable() {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState<{ id: string; spotId: string } | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-  const [showQRScanner, setShowQRScanner] = useState(false);
 
   // ── Fetch all bookings ────────────────────────────────────
   const fetchBookings = async () => {
@@ -184,8 +182,8 @@ export default function BookingsTable() {
             {/* QR Scan button */}
             <button
               className="btn-scan-qr"
-              onClick={() => setShowQRScanner(true)}
-              title="Scan user QR code at entrance"
+              onClick={() => window.open('/scanner', '_blank')}
+              title="Open QR Scanner in a new tab"
             >
               <span>📷</span>
               <span>Scan QR</span>
@@ -428,10 +426,6 @@ export default function BookingsTable() {
         </div>
       )}
 
-      {/* ── QR Scanner Modal ─────────────────────────────────── */}
-      {showQRScanner && (
-        <QRScanModal onClose={() => setShowQRScanner(false)} />
-      )}
     </div>
   );
 }
