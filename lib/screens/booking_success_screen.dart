@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -38,6 +39,9 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
   late Animation<double> _scaleAnim;
   late Animation<double> _fadeAnim;
 
+  Timer? _redirectTimer;
+  int _countdown = 5;
+
   String get _displayCode => widget.bookingCode ?? widget.bookingRef;
 
   @override
@@ -56,12 +60,31 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
       curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
     );
     _animController.forward();
+
+    // Auto-redirect to My Bookings after 5 seconds
+    _redirectTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) { t.cancel(); return; }
+      setState(() => _countdown--);
+      if (_countdown <= 0) {
+        t.cancel();
+        _goToMyBookings();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _redirectTimer?.cancel();
     _animController.dispose();
     super.dispose();
+  }
+
+  void _goToMyBookings() {
+    if (!mounted) return;
+    _redirectTimer?.cancel();
+    final appState = context.read<AppState>();
+    appState.setBottomNavIndex(2);
+    Navigator.popUntil(context, (route) => route.isFirst);
   }
 
   @override
@@ -118,7 +141,59 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
                             color: AppTheme.textPrimary.withOpacity(0.55),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
+
+                        // ── Auto-redirect countdown ──────────────────────
+                        GestureDetector(
+                          onTap: _goToMyBookings,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.brandGreen.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppTheme.brandGreen.withOpacity(0.2),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.timer_outlined,
+                                        size: 16, color: AppTheme.brandGreen),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Going to My Bookings in ${_countdown}s  •  Tap to go now',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.brandGreenDeep,
+                                        ),
+                                      ),
+                                    ),
+                                    const Icon(Icons.arrow_forward_ios_rounded,
+                                        size: 12, color: AppTheme.brandGreen),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: LinearProgressIndicator(
+                                    value: 1.0 - (_countdown / 5.0),
+                                    minHeight: 4,
+                                    backgroundColor: AppTheme.brandGreen.withOpacity(0.15),
+                                    valueColor: const AlwaysStoppedAnimation<Color>(
+                                        AppTheme.brandGreen),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
 
                         // ── QR Code Card ────────────────────────────────
                         GlassContainer(
@@ -205,40 +280,16 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
                         // ── Action Buttons ──────────────────────────────
                         GlassButton(
                           isFullWidth: true,
-                          variant: GlassButtonVariant.ghost,
-                          onPressed: () => showBookingQrSheet(
-                            context,
-                            bookingCode: _displayCode,
-                            spotLabel: widget.spotLabel,
-                            locationName: widget.locationName,
-                            durationHours: widget.durationHours,
-                            arrivalTime: widget.arrivalTime,
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.qr_code_2_rounded, size: 18),
-                              SizedBox(width: 8),
-                              Text('View Full QR'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        GlassButton(
-                          isFullWidth: true,
                           variant: GlassButtonVariant.primary,
-                          onPressed: () {
-                            final appState = context.read<AppState>();
-                            appState.setBottomNavIndex(2);
-                            Navigator.popUntil(context, (route) => route.isFirst);
-                          },
-                          child: const Text('View My Bookings'),
+                          onPressed: _goToMyBookings,
+                          child: const Text('Go to My Bookings →'),
                         ),
                         const SizedBox(height: 10),
                         GlassButton(
                           isFullWidth: true,
                           variant: GlassButtonVariant.ghost,
                           onPressed: () {
+                            _redirectTimer?.cancel();
                             Navigator.popUntil(context, (route) => route.isFirst);
                           },
                           child: const Text('Back to Home'),

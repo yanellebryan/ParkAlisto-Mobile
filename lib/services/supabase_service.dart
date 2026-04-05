@@ -148,6 +148,23 @@ class SupabaseService {
     await updateSpotStatus(spotId, 'available');
   }
 
+  /// Watch for real-time changes to the current user's bookings.
+  /// Calls [onUpdate] whenever any booking row changes (e.g., checked_in → true).
+  RealtimeChannel watchBookingCheckins(void Function() onUpdate) {
+    final userId = _client.auth.currentUser?.id;
+    final channelName = 'user_booking_watch_${userId ?? 'anon'}';
+
+    return _client
+        .channel(channelName)
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'bookings',
+          callback: (_) => onUpdate(),
+        )
+        .subscribe();
+  }
+
   /// Lookup a booking by its short booking_code (for QR scan at entrance)
   Future<Map<String, dynamic>?> getBookingByCode(String bookingCode) async {
     final data = await _client

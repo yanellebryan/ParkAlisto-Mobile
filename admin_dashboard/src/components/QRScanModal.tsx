@@ -90,7 +90,7 @@ export default function QRScanModal({ onClose }: QRScanModalProps) {
             const trimmed = decoded.trim().toUpperCase();
             await lookupBooking(trimmed);
           },
-          () => {} // per-frame errors — ignore
+          () => { } // per-frame errors — ignore
         );
 
         if (!cancelled) {
@@ -117,7 +117,7 @@ export default function QRScanModal({ onClose }: QRScanModalProps) {
       cancelled = true;
       stopCamera();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   // ── Lookup booking by code ────────────────────────────────

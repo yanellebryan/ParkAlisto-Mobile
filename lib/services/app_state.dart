@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/parking_location.dart';
 import '../models/parking_spot.dart';
 import '../models/booking.dart';
@@ -11,6 +12,7 @@ import 'mock_data.dart';
 class AppState extends ChangeNotifier {
   final SupabaseService _supabase = SupabaseService();
   StreamSubscription? _spotSubscription;
+  RealtimeChannel? _bookingChannel;
 
   String selectedCity = 'Bacolod City';
   String selectedCategory = 'car';
@@ -34,7 +36,37 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _spotSubscription?.cancel();
+    stopBookingRealtimeListener();
     super.dispose();
+  }
+
+  // ── Active parking session ────────────────────────────────
+  /// Returns the booking that has been checked in by admin and is still active.
+  Booking? get activeCheckedInBooking {
+    try {
+      return myBookings.firstWhere(
+        (b) => b.status == 'active' && b.checkedIn,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── Realtime booking listener ─────────────────────────────
+  /// Start listening for check-in updates from Supabase.
+  /// Call this after the user logs in.
+  void startBookingRealtimeListener() {
+    if (!_supabase.isLoggedIn) return;
+    stopBookingRealtimeListener();
+    _bookingChannel = _supabase.watchBookingCheckins(() {
+      AppLogger.info('Realtime: booking update detected, reloading bookings');
+      loadBookings();
+    });
+  }
+
+  void stopBookingRealtimeListener() {
+    _bookingChannel?.unsubscribe();
+    _bookingChannel = null;
   }
 
   // ── User Info ─────────────────────────────────────────────

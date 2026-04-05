@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme.dart';
@@ -7,15 +8,39 @@ import '../widgets/glass_container.dart';
 import '../widgets/glass_button.dart';
 import '../widgets/dynamic_mesh_background.dart';
 import '../widgets/booking_qr_sheet.dart';
+import 'active_parking_screen.dart';
 
-class MyBookingsScreen extends StatelessWidget {
+class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MyBookingsScreen> createState() => _MyBookingsScreenState();
+}
+
+class _MyBookingsScreenState extends State<MyBookingsScreen> {
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Poll every 10s to catch check-in updates if realtime misses them
+    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) context.read<AppState>().loadBookings();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final theme = Theme.of(context);
     final bookings = appState.myBookings;
+    final activeSession = appState.activeCheckedInBooking;
 
     return DynamicMeshBackground(
       child: SafeArea(
@@ -40,6 +65,10 @@ class MyBookingsScreen extends StatelessWidget {
               ),
             ),
 
+            // ── Active Session Banner ──────────────────────────────
+            if (activeSession != null)
+              _buildActiveSessionBanner(context, activeSession),
+
             // Content
             Expanded(
               child: bookings.isEmpty
@@ -51,6 +80,87 @@ class MyBookingsScreen extends StatelessWidget {
                           _buildBookingCard(context, bookings[index]),
                     ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveSessionBanner(BuildContext context, Booking booking) {
+    final expiresAt = booking.expiresAt;
+    final remaining = expiresAt != null && expiresAt.isAfter(DateTime.now())
+        ? expiresAt.difference(DateTime.now())
+        : Duration.zero;
+    final h = remaining.inHours.toString().padLeft(2, '0');
+    final m = remaining.inMinutes.remainder(60).toString().padLeft(2, '0');
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ActiveParkingScreen(booking: booking),
+        ),
+      ),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.brandGreen.withOpacity(0.85),
+              AppTheme.brandGreenDeep,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.brandGreen.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.local_parking, color: Colors.white, size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "You're currently parked! 🚗",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    remaining.inSeconds > 0
+                        ? '$h:$m remaining • ${booking.spot.label}'
+                        : 'Session expired • Please vacate',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.white, size: 14),
           ],
         ),
       ),

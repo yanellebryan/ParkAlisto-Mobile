@@ -24,7 +24,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppState>().loadLocations();
+      final appState = context.read<AppState>();
+      appState.loadLocations();
+      appState.loadBookings();             // pre-load bookings
+      appState.startBookingRealtimeListener(); // watch for check-in updates
     });
   }
 
