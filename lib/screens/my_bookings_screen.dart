@@ -6,6 +6,7 @@ import '../models/booking.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/glass_button.dart';
 import '../widgets/dynamic_mesh_background.dart';
+import '../widgets/booking_qr_sheet.dart';
 
 class MyBookingsScreen extends StatelessWidget {
   const MyBookingsScreen({Key? key}) : super(key: key);
@@ -25,8 +26,18 @@ class MyBookingsScreen extends StatelessWidget {
             // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-              child: Text('My Bookings',
-                  style: theme.textTheme.headlineMedium),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('My Bookings', style: theme.textTheme.headlineMedium),
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded),
+                    color: AppTheme.textPrimary.withOpacity(0.5),
+                    onPressed: () => appState.loadBookings(),
+                    tooltip: 'Refresh',
+                  ),
+                ],
+              ),
             ),
 
             // Content
@@ -75,19 +86,27 @@ class MyBookingsScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     Color statusColor;
+    IconData statusIcon;
     switch (booking.status) {
       case 'active':
         statusColor = AppTheme.brandGreen;
+        statusIcon = Icons.radio_button_checked;
         break;
       case 'completed':
         statusColor = AppTheme.textPrimary.withOpacity(0.4);
+        statusIcon = Icons.check_circle_outline;
         break;
       case 'cancelled':
         statusColor = AppTheme.destructiveLight;
+        statusIcon = Icons.cancel_outlined;
         break;
       default:
         statusColor = AppTheme.textPrimary.withOpacity(0.4);
+        statusIcon = Icons.help_outline;
     }
+
+    final bool cancelledByAdmin =
+        booking.status == 'cancelled' && booking.cancellationReason != null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -108,21 +127,29 @@ class MyBookingsScreen extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
+                // Status pill
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    booking.status[0].toUpperCase() +
-                        booking.status.substring(1),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: statusColor,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, size: 12, color: statusColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        booking.status[0].toUpperCase() +
+                            booking.status.substring(1),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: statusColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -138,16 +165,107 @@ class MyBookingsScreen extends StatelessWidget {
             _infoRow(Icons.timer_outlined,
                 '${booking.durationHours}h — ₱${booking.totalPrice.toStringAsFixed(0)}'),
 
-            // Cancel button for active bookings
-            if (booking.status == 'active') ...[
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: GlassButton(
-                  variant: GlassButtonVariant.destructive,
-                  onPressed: () => _showCancelDialog(context, booking.id),
-                  child: const Text('Cancel Booking'),
+            // Booking code row
+            if (booking.bookingCode != null) ...[
+              const SizedBox(height: 4),
+              _infoRow(Icons.qr_code_rounded, booking.bookingCode!,
+                  color: AppTheme.brandGreen.withOpacity(0.7)),
+            ],
+
+            // Expiry info for active bookings
+            if (booking.status == 'active' && booking.expiresAt != null) ...[
+              const SizedBox(height: 4),
+              _infoRow(
+                Icons.hourglass_bottom_rounded,
+                'Expires: ${_formatDateTime(booking.expiresAt!)}',
+                color: booking.isExpired
+                    ? AppTheme.destructiveLight
+                    : AppTheme.textPrimary.withOpacity(0.5),
+              ),
+            ],
+
+            // Admin cancellation notice
+            if (cancelledByAdmin) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.destructiveLight.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: AppTheme.destructiveLight.withOpacity(0.2)),
                 ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 16,
+                        color: AppTheme.destructiveLight.withOpacity(0.7)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Cancelled by admin',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.destructiveLight,
+                            ),
+                          ),
+                          if (booking.cancellationReason!.isNotEmpty)
+                            Text(
+                              booking.cancellationReason!,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.textPrimary.withOpacity(0.5),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Bottom action buttons
+            if (booking.status == 'active') ...[
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  // Show QR button
+                  Expanded(
+                    child: GlassButton(
+                      variant: GlassButtonVariant.ghost,
+                      onPressed: () => showBookingQrSheet(
+                        context,
+                        bookingCode: booking.bookingCode ?? booking.id,
+                        spotLabel: booking.spot.label,
+                        locationName: booking.location.name,
+                        durationHours: booking.durationHours,
+                        arrivalTime: booking.arrivalTime,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.qr_code_2_rounded, size: 16),
+                          SizedBox(width: 6),
+                          Text('Show QR'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Cancel button
+                  Expanded(
+                    child: GlassButton(
+                      variant: GlassButtonVariant.destructive,
+                      onPressed: () => _showCancelDialog(context, booking.id),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ],
@@ -156,16 +274,24 @@ class MyBookingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _infoRow(IconData icon, String text) {
+  String _formatDateTime(DateTime dt) {
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final min = dt.minute.toString().padLeft(2, '0');
+    return '${dt.month}/${dt.day} $hour:$min';
+  }
+
+  Widget _infoRow(IconData icon, String text, {Color? color}) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppTheme.textPrimary.withOpacity(0.45)),
+        Icon(icon,
+            size: 16,
+            color: color ?? AppTheme.textPrimary.withOpacity(0.45)),
         const SizedBox(width: 8),
         Text(
           text,
           style: TextStyle(
             fontSize: 13,
-            color: AppTheme.textPrimary.withOpacity(0.65),
+            color: color ?? AppTheme.textPrimary.withOpacity(0.65),
           ),
         ),
       ],

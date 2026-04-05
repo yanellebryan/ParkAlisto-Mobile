@@ -10,8 +10,26 @@ class Booking {
   final DateTime? arrivalTime;
   String status; // 'active', 'completed', 'cancelled'
   final String? paymentMethod;
+  final String? bookingCode;         // Short human-readable code e.g. "PRK-4F2A8B"
+  final String? cancellationReason;  // Reason if cancelled by admin
+  final bool checkedIn;              // Whether user has scanned in at entrance
+  final DateTime? checkedInAt;
 
   double get totalPrice => location.pricePerHour * durationHours;
+
+  /// The booking window end time (arrival_time + duration) or null if not set
+  DateTime? get expiresAt {
+    if (arrivalTime != null) {
+      return arrivalTime!.add(Duration(hours: durationHours));
+    }
+    return dateTime.add(Duration(hours: durationHours + 2));
+  }
+
+  bool get isExpired {
+    final exp = expiresAt;
+    if (exp == null) return false;
+    return DateTime.now().isAfter(exp);
+  }
 
   Booking({
     required this.id,
@@ -22,6 +40,10 @@ class Booking {
     required this.durationHours,
     this.status = 'active',
     this.paymentMethod,
+    this.bookingCode,
+    this.cancellationReason,
+    this.checkedIn = false,
+    this.checkedInAt,
   });
 
   /// Create a Booking from a Supabase JSON row (with joined location & spot)
@@ -53,12 +75,18 @@ class Booking {
               status: SpotStatus.occupied,
             ),
       dateTime: DateTime.parse(json['booking_date'] as String),
-      arrivalTime: json['arrival_time'] != null 
+      arrivalTime: json['arrival_time'] != null
           ? DateTime.parse(json['arrival_time'] as String)
           : null,
       durationHours: json['duration_hours'] as int,
       status: json['status'] as String,
       paymentMethod: json['payment_method'] as String?,
+      bookingCode: json['booking_code'] as String?,
+      cancellationReason: json['cancellation_reason'] as String?,
+      checkedIn: (json['checked_in'] as bool?) ?? false,
+      checkedInAt: json['checked_in_at'] != null
+          ? DateTime.parse(json['checked_in_at'] as String)
+          : null,
     );
   }
 
@@ -81,6 +109,7 @@ class Booking {
       'total_price': totalPrice,
       'status': status,
       'payment_method': paymentMethod,
+      if (bookingCode != null) 'booking_code': bookingCode,
     };
   }
 }

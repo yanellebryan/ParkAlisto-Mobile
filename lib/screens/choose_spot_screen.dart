@@ -957,16 +957,21 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                 GlassButton(
                   isFullWidth: true,
                   variant: GlassButtonVariant.primary,
-                  onPressed: () {
-                    final ref =
-                        'PRK-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+                  onPressed: () async {
                     final spotLabel = spot.label;
                     final locName = loc.name;
                     final price = totalPrice;
                     final dur = selectedDuration;
+                    final capturedTime = selectedTime;
 
-                    appState.confirmBooking(selectedDuration, startTime: selectedTime);
-                    Navigator.pop(ctx); // close sheet
+                    Navigator.pop(ctx); // close sheet first
+
+                    // confirmBooking now returns the real Booking with UUID + bookingCode
+                    final createdBooking = await appState.confirmBooking(
+                      dur,
+                      startTime: capturedTime,
+                    );
+
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -975,7 +980,9 @@ class _ChooseSpotScreenState extends State<ChooseSpotScreen> {
                           locationName: locName,
                           durationHours: dur,
                           totalPrice: price,
-                          bookingRef: ref,
+                          bookingRef: createdBooking?.id ?? 'N/A',
+                          bookingCode: createdBooking?.bookingCode,
+                          arrivalTime: capturedTime,
                         ),
                       ),
                     );

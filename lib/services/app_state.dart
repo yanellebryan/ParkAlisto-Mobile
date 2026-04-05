@@ -191,37 +191,41 @@ class AppState extends ChangeNotifier {
 
   /// Confirm a booking — saves to Supabase if logged in,
   /// otherwise falls back to local-only.
-  Future<void> confirmBooking(int durationHours, {DateTime? startTime}) async {
-    if (selectedLocation == null || selectedSpot == null) return;
+  /// Returns the created [Booking] (with real Supabase UUID + booking_code).
+  Future<Booking?> confirmBooking(int durationHours, {DateTime? startTime}) async {
+    if (selectedLocation == null || selectedSpot == null) return null;
 
     final start = startTime ?? DateTime.now();
 
-    final bookingId = 'PRK-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-    final newBooking = Booking(
-      id: bookingId,
+    // Local fallback booking (used if offline or mock spot)
+    final fallbackBooking = Booking(
+      id: 'PRK-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
       location: selectedLocation!,
       spot: selectedSpot!,
       dateTime: start,
       durationHours: durationHours,
       status: 'active',
       paymentMethod: selectedPaymentMethod?.name ?? 'Cash',
+      bookingCode: 'PRK-OFFLINE',
     );
+
+    Booking? createdBooking;
 
     if (_supabase.isLoggedIn) {
       try {
-        // Robust UUID check: Mock IDs like "A1", "B4" are NOT UUIDs.
-        // Mapped locations use UUIDs for locationId, but if spots are missing,
-        // we'll have a mock spot ID.
+        // Only attempt Supabase if the spot ID is a real UUID
         final bool isUuidSpot = RegExp(
           r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
           caseSensitive: false,
         ).hasMatch(selectedSpot!.id);
 
         if (!isUuidSpot) {
-          myBookings.insert(0, newBooking);
+          myBookings.insert(0, fallbackBooking);
           AppLogger.info('Booking mock spot locally: ${selectedSpot!.id}');
+          createdBooking = fallbackBooking;
         } else {
-          await _supabase.createBooking(
+          // createBooking now returns the full Booking with real UUID + booking_code
+          createdBooking = await _supabase.createBooking(
             locationId: selectedLocation!.id,
             spotId: selectedSpot!.id,
             startTime: start,
@@ -229,22 +233,23 @@ class AppState extends ChangeNotifier {
             totalPrice: selectedLocation!.pricePerHour * durationHours,
             paymentMethod: selectedPaymentMethod?.name ?? 'Cash',
           );
-          // The real-time stream in loadSpots() will automatically
-          // pick up the 'occupied' status change. No need to loadSpots() again.
+          // Reload to get fresh list from DB (with location & spot joins)
           await loadBookings();
         }
       } catch (e) {
         AppLogger.error('Error creating booking', e);
-        // Final fallback: showing at least locally
-        myBookings.insert(0, newBooking);
+        myBookings.insert(0, fallbackBooking);
+        createdBooking = fallbackBooking;
       }
     } else {
-      myBookings.insert(0, newBooking);
+      myBookings.insert(0, fallbackBooking);
+      createdBooking = fallbackBooking;
     }
 
     // Clear selection. The status change will be handled by the Realtime stream.
     selectedSpot = null;
     notifyListeners();
+    return createdBooking;
   }
 
   void setBottomNavIndex(int index) {
