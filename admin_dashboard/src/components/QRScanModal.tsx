@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import './components.css';
 
@@ -21,60 +21,110 @@ interface ScannedBooking {
   parking_locations?: { name: string };
 }
 
-type ScanState = 'scanning' | 'found' | 'not_found' | 'already_checked_in' | 'error' | 'confirming' | 'success';
+type ScanState = 'idle' | 'scanning' | 'found' | 'not_found' | 'already_checked_in' | 'error' | 'confirming' | 'success';
 
 export default function QRScanModal({ onClose }: QRScanModalProps) {
-  const scannerRef = useRef<HTMLDivElement>(null);
-  const html5QrCodeRef = useRef<any>(null);
-  const [scanState, setScanState] = useState<ScanState>('scanning');
+  // ── State ──────────────────────────────────────────────────
+  const [mode, setMode] = useState<'manual' | 'camera'>('manual'); // Default: manual
+  const [scanState, setScanState] = useState<ScanState>('idle');
   const [booking, setBooking] = useState<ScannedBooking | null>(null);
   const [manualCode, setManualCode] = useState('');
-  const [useManual, setUseManual] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [cameraError, setCameraError] = useState(false);
+  const [cameraSupported, setCameraSupported] = useState<boolean | null>(null);
+  const [cameraError, setCameraError] = useState('');
 
-  // Start QR scanner on mount
+  const scannerRef = useRef<HTMLDivElement>(null);
+  const html5QrCodeRef = useRef<any>(null);
+  const scannerStartedRef = useRef(false); // Track if scanner actually started
+
+  // ── Camera availability check (non-blocking) ──────────────
   useEffect(() => {
-    if (useManual) return;
+    const checkCamera = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasCamera = devices.some(d => d.kind === 'videoinput');
+        setCameraSupported(hasCamera);
+      } catch {
+        setCameraSupported(false);
+      }
+    };
+    if (navigator.mediaDevices) {
+      checkCamera();
+    } else {
+      setCameraSupported(false);
+    }
+  }, []);
 
-    let scanner: any = null;
+  // ── Stop camera safely ─────────────────────────────────────
+  const stopCamera = useCallback(async () => {
+    if (html5QrCodeRef.current && scannerStartedRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+      } catch {
+        // Ignore stop errors — scanner may already be stopped
+      }
+      scannerStartedRef.current = false;
+    }
+    html5QrCodeRef.current = null;
+  }, []);
+
+  // ── Start camera scanner ───────────────────────────────────
+  useEffect(() => {
+    if (mode !== 'camera') return;
+
+    let cancelled = false;
 
     const startScanner = async () => {
       try {
         const { Html5Qrcode } = await import('html5-qrcode');
-        if (!scannerRef.current) return;
+        if (cancelled || !scannerRef.current) return;
 
-        scanner = new Html5Qrcode('qr-reader');
+        const scanner = new Html5Qrcode('qr-scan-viewport');
         html5QrCodeRef.current = scanner;
 
         await scanner.start(
           { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          async (decodedText: string) => {
-            // Stop scanning once we have a result
-            await scanner.stop().catch(() => {});
-            await lookupBooking(decodedText.trim().toUpperCase());
+          { fps: 10, qrbox: { width: 240, height: 240 } },
+          async (decoded: string) => {
+            await stopCamera();
+            const trimmed = decoded.trim().toUpperCase();
+            await lookupBooking(trimmed);
           },
-          () => {} // ignore per-frame errors
+          () => {} // per-frame errors — ignore
         );
+
+        if (!cancelled) {
+          scannerStartedRef.current = true;
+          setCameraError('');
+        }
       } catch (err: any) {
-        console.error('Camera start error:', err);
-        setCameraError(true);
-        setUseManual(true);
+        if (cancelled) return;
+        const msg = err?.message || String(err);
+        const isNoCamera = msg.includes('NotFound') || msg.includes('not found') || msg.includes('Requested device');
+        setCameraError(isNoCamera
+          ? 'No camera found on this device. Use manual entry below.'
+          : `Camera error: ${msg}`
+        );
+        setCameraSupported(isNoCamera ? false : cameraSupported);
+        // Fall back to manual
+        setMode('manual');
       }
     };
 
     startScanner();
 
     return () => {
-      if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(() => {});
-      }
+      cancelled = true;
+      stopCamera();
     };
-  }, [useManual]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
+  // ── Lookup booking by code ────────────────────────────────
   const lookupBooking = async (code: string) => {
-    setScanState('scanning'); // show loading briefly
+    setScanState('scanning');
+    setBooking(null);
+
     try {
       const { data, error } = await supabase
         .from('bookings')
@@ -89,32 +139,22 @@ export default function QRScanModal({ onClose }: QRScanModalProps) {
         return;
       }
 
-      const b = data as ScannedBooking;
-      setBooking(b);
-
-      if (b.checked_in) {
-        setScanState('already_checked_in');
-      } else if (b.status !== 'active') {
-        setScanState('found'); // still show info, but warn
-      } else {
-        setScanState('found');
-      }
+      setBooking(data as ScannedBooking);
+      setScanState(data.checked_in ? 'already_checked_in' : 'found');
     } catch (err: any) {
       setErrorMsg(err.message || 'Unknown error');
       setScanState('error');
     }
   };
 
+  // ── Confirm check-in ──────────────────────────────────────
   const handleCheckIn = async () => {
     if (!booking) return;
     setScanState('confirming');
     try {
       const { error } = await supabase
         .from('bookings')
-        .update({
-          checked_in: true,
-          checked_in_at: new Date().toISOString(),
-        })
+        .update({ checked_in: true, checked_in_at: new Date().toISOString() })
         .eq('id', booking.id);
 
       if (error) throw error;
@@ -125,22 +165,22 @@ export default function QRScanModal({ onClose }: QRScanModalProps) {
     }
   };
 
+  // ── Manual lookup ─────────────────────────────────────────
   const handleManualLookup = async () => {
     const trimmed = manualCode.trim().toUpperCase();
     if (!trimmed) return;
-    // Stop camera if running
-    if (html5QrCodeRef.current) {
-      await html5QrCodeRef.current.stop().catch(() => {});
-    }
     await lookupBooking(trimmed);
   };
 
-  const resetScanner = () => {
+  // ── Reset ─────────────────────────────────────────────────
+  const resetModal = () => {
     setBooking(null);
-    setScanState('scanning');
+    setScanState('idle');
     setManualCode('');
     setErrorMsg('');
-    setUseManual(false);
+    if (mode === 'camera') {
+      setMode('manual'); // Return to manual after a scan result
+    }
   };
 
   const formatTime = (iso?: string) => {
@@ -152,47 +192,57 @@ export default function QRScanModal({ onClose }: QRScanModalProps) {
     });
   };
 
+  // ── Render ────────────────────────────────────────────────
   return (
-    <div className="qr-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="qr-modal-overlay" onClick={(e) => {
+      if (e.target === e.currentTarget) { stopCamera(); onClose(); }
+    }}>
       <div className="qr-modal-card">
 
         {/* Header */}
         <div className="qr-modal-header">
           <div>
             <h2 className="qr-modal-title">🔍 Scan Entry Pass</h2>
-            <p className="qr-modal-subtitle">Scan the user&apos;s QR code to verify their booking</p>
+            <p className="qr-modal-subtitle">Verify a user&apos;s parking booking at the entrance</p>
           </div>
-          <button className="qr-close-btn" onClick={onClose} title="Close">✕</button>
+          <button className="qr-close-btn" onClick={() => { stopCamera(); onClose(); }} title="Close">✕</button>
         </div>
 
-        {/* Scanner / Result area */}
         <div className="qr-content">
 
-          {/* ── Scanning state: camera ─────────────────── */}
-          {scanState === 'scanning' && !useManual && (
-            <div className="qr-camera-wrapper">
-              <div id="qr-reader" ref={scannerRef} className="qr-reader-box" />
-              <p className="qr-hint">Point camera at the QR code</p>
+          {/* ── Mode tabs: Manual / Camera ─────────────── */}
+          {(scanState === 'idle' || scanState === 'not_found' || scanState === 'scanning') && (
+            <div className="qr-mode-tabs">
               <button
-                className="qr-manual-toggle"
-                onClick={() => {
-                  if (html5QrCodeRef.current) html5QrCodeRef.current.stop().catch(() => {});
-                  setUseManual(true);
-                }}
+                className={`qr-mode-tab ${mode === 'manual' ? 'active' : ''}`}
+                onClick={() => { stopCamera(); setMode('manual'); }}
               >
-                Enter code manually instead
+                ⌨️ Enter Code
+              </button>
+              <button
+                className={`qr-mode-tab ${mode === 'camera' ? 'active' : ''} ${cameraSupported === false ? 'disabled' : ''}`}
+                onClick={() => {
+                  if (cameraSupported === false) return;
+                  setMode('camera');
+                }}
+                title={cameraSupported === false ? 'No camera available on this device' : 'Scan QR with camera'}
+              >
+                📷 Use Camera
+                {cameraSupported === false && <span className="qr-tab-badge">N/A</span>}
               </button>
             </div>
           )}
 
+          {/* Camera error notice */}
+          {cameraError && (
+            <div className="qr-camera-error" style={{ marginBottom: '12px' }}>
+              📷 {cameraError}
+            </div>
+          )}
+
           {/* ── Manual input ───────────────────────────── */}
-          {(useManual || cameraError) && scanState === 'scanning' && (
-            <div className="qr-manual-wrapper">
-              {cameraError && (
-                <div className="qr-camera-error">
-                  📷 Camera unavailable. Please enter the booking code manually.
-                </div>
-              )}
+          {mode === 'manual' && (scanState === 'idle' || scanState === 'not_found') && (
+            <div className="qr-manual-wrapper" style={{ marginTop: '4px' }}>
               <label className="qr-label">Booking Code</label>
               <div className="qr-manual-row">
                 <input
@@ -203,15 +253,33 @@ export default function QRScanModal({ onClose }: QRScanModalProps) {
                   onKeyDown={(e) => e.key === 'Enter' && handleManualLookup()}
                   autoFocus
                 />
-                <button className="qr-lookup-btn" onClick={handleManualLookup}>
+                <button
+                  className="qr-lookup-btn"
+                  onClick={handleManualLookup}
+                  disabled={!manualCode.trim()}
+                >
                   Look up →
                 </button>
               </div>
-              {!cameraError && (
-                <button className="qr-manual-toggle" onClick={() => setUseManual(false)}>
-                  ← Back to camera
-                </button>
-              )}
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '6px 0 0' }}>
+                Ask the user to read the code from their app or show their QR screen.
+              </p>
+            </div>
+          )}
+
+          {/* ── Camera mode ────────────────────────────── */}
+          {mode === 'camera' && (scanState === 'idle' || scanState === 'scanning') && (
+            <div className="qr-camera-wrapper">
+              <div id="qr-scan-viewport" ref={scannerRef} className="qr-reader-box" />
+              <p className="qr-hint">Point the webcam at the user&apos;s QR code</p>
+            </div>
+          )}
+
+          {/* ── Loading ─────────────────────────────────── */}
+          {scanState === 'scanning' && (
+            <div className="qr-result-state">
+              <div className="qr-state-icon">⏳</div>
+              <h3>Looking up booking…</h3>
             </div>
           )}
 
@@ -220,46 +288,51 @@ export default function QRScanModal({ onClose }: QRScanModalProps) {
             <div className="qr-result-state not-found">
               <div className="qr-state-icon">❌</div>
               <h3>Booking Not Found</h3>
-              <p>No booking matches this QR code. The code may be invalid or expired.</p>
-              <button className="qr-retry-btn" onClick={resetScanner}>Try Again</button>
+              <p>No booking matches <strong>{manualCode || 'that code'}</strong>. Double-check the code and try again.</p>
+              <button className="qr-retry-btn" onClick={resetModal}>Try Again</button>
             </div>
           )}
 
-          {/* ── Error ─────────────────────────────────── */}
+          {/* ── Error ────────────────────────────────── */}
           {scanState === 'error' && (
-            <div className="qr-result-state error-state">
+            <div className="qr-result-state">
               <div className="qr-state-icon">⚠️</div>
               <h3>Something went wrong</h3>
               <p>{errorMsg}</p>
-              <button className="qr-retry-btn" onClick={resetScanner}>Try Again</button>
-            </div>
-          )}
-
-          {/* ── Success: checked in ────────────────────── */}
-          {scanState === 'success' && booking && (
-            <div className="qr-result-state success-state">
-              <div className="qr-state-icon success-pulse">✅</div>
-              <h3>Checked In!</h3>
-              <p>
-                <strong>{booking.booking_code}</strong> has been verified.
-                {booking.parking_spots && ` Spot ${booking.parking_spots.row_letter}${booking.parking_spots.spot_number}, Floor ${booking.parking_spots.floor}.`}
-              </p>
-              <p className="qr-checkin-time">Checked in at {formatTime(new Date().toISOString())}</p>
-              <button className="qr-retry-btn success" onClick={resetScanner}>Scan Another</button>
+              <button className="qr-retry-btn" onClick={resetModal}>Try Again</button>
             </div>
           )}
 
           {/* ── Already checked in ────────────────────── */}
           {scanState === 'already_checked_in' && booking && (
-            <div className="qr-result-state already-in">
+            <div className="qr-result-state already-checked-in">
               <div className="qr-state-icon">⚠️</div>
               <h3>Already Checked In</h3>
-              <p>This booking was already verified at <strong>{formatTime(booking.checked_in_at)}</strong>.</p>
-              <button className="qr-retry-btn" onClick={resetScanner}>Scan Another</button>
+              <p>
+                <strong>{booking.booking_code}</strong> was already verified
+                at <strong>{formatTime(booking.checked_in_at)}</strong>.
+              </p>
+              <button className="qr-retry-btn" onClick={resetModal}>Scan Another</button>
             </div>
           )}
 
-          {/* ── Found — confirm check-in ──────────────── */}
+          {/* ── Success ───────────────────────────────── */}
+          {scanState === 'success' && booking && (
+            <div className="qr-result-state success-state">
+              <div className="qr-state-icon success-pulse">✅</div>
+              <h3>Checked In!</h3>
+              <p>
+                <strong>{booking.booking_code}</strong> successfully verified.
+                {booking.parking_spots && (
+                  <> Spot <strong>{booking.parking_spots.row_letter}{booking.parking_spots.spot_number}</strong>, Floor {booking.parking_spots.floor}.</>
+                )}
+              </p>
+              <p className="qr-checkin-time">Checked in at {formatTime(new Date().toISOString())}</p>
+              <button className="qr-retry-btn success" onClick={resetModal}>Scan Another</button>
+            </div>
+          )}
+
+          {/* ── Found — booking details + confirm ─────── */}
           {(scanState === 'found' || scanState === 'confirming') && booking && (
             <div className="qr-booking-card">
               <div className="qr-booking-header">
@@ -301,15 +374,19 @@ export default function QRScanModal({ onClose }: QRScanModalProps) {
               </div>
 
               <div className="qr-action-row">
-                <button className="qr-retry-btn" onClick={resetScanner} disabled={scanState === 'confirming'}>
-                  ← Cancel
+                <button
+                  className="qr-retry-btn"
+                  onClick={resetModal}
+                  disabled={scanState === 'confirming'}
+                >
+                  ← Back
                 </button>
                 <button
                   className="qr-checkin-btn"
                   onClick={handleCheckIn}
                   disabled={scanState === 'confirming'}
                 >
-                  {scanState === 'confirming' ? '⏳ Checking in...' : '✅ Confirm Entry'}
+                  {scanState === 'confirming' ? '⏳ Checking in…' : '✅ Confirm Entry'}
                 </button>
               </div>
             </div>

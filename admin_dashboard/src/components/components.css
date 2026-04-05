@@ -1338,6 +1338,60 @@ input:checked + .slider:before {
   cursor: not-allowed;
 }
 
+/* ── QR Mode Tabs ────────────────────────────────────────── */
+.qr-mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.qr-mode-tab {
+  flex: 1;
+  padding: 9px 14px;
+  border: none;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.qr-mode-tab:hover:not(.disabled) {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-main);
+}
+
+.qr-mode-tab.active {
+  background: #fff;
+  color: var(--text-main);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.qr-mode-tab.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.qr-tab-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-left: 4px;
+}
+
 /* ── Shared animations ───────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; }
