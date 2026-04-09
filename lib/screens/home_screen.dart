@@ -540,23 +540,48 @@ class _HomeScreenState extends State<HomeScreen> {
             ...cities.map((city) {
               final isSelected =
                   context.read<AppState>().selectedCity == city;
+              final isBacolod = city == 'Bacolod City';
+
               return ListTile(
                 onTap: () {
-                  context.read<AppState>().setCity(city);
                   Navigator.pop(ctx);
+                  if (isBacolod) {
+                    context.read<AppState>().setCity(city);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('ParkAlisto in $city is coming soon!'),
+                        backgroundColor: AppTheme.brandGreen,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
+                  }
                 },
                 title: Text(city,
                     style: TextStyle(
                       color: isSelected
                           ? AppTheme.brandGreen
-                          : AppTheme.textPrimary,
+                          : AppTheme.textPrimary.withOpacity(isBacolod ? 1.0 : 0.6),
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w400,
                     )),
+                subtitle: !isBacolod
+                    ? Text('Coming soon!',
+                        style: TextStyle(
+                          color: AppTheme.brandGreen.withOpacity(0.8),
+                          fontSize: 12,
+                        ))
+                    : null,
                 trailing: isSelected
                     ? const Icon(Icons.check_circle,
                         color: AppTheme.brandGreen, size: 20)
-                    : null,
+                    : (!isBacolod
+                        ? Icon(Icons.watch_later_outlined,
+                            color: AppTheme.textPrimary.withOpacity(0.3),
+                            size: 18)
+                        : null),
               );
             }),
           ],

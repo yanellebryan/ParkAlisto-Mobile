@@ -3,10 +3,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme.dart';
 import '../services/app_state.dart';
 import '../services/mock_data.dart';
 import '../widgets/dynamic_mesh_background.dart';
+import '../widgets/glass_container.dart';
+import '../widgets/glass_button.dart';
 import '../models/parking_location.dart';
 import 'choose_spot_screen.dart';
 
@@ -39,7 +42,7 @@ class _MapScreenState extends State<MapScreen> {
 
       // 2. Generate full aesthetic labels for each location
       for (var loc in MockData.parkingLocations) {
-        _markerData[loc.id] = await _generateMarkerIconData(loc);
+        _markerData[loc.name] = await _generateMarkerIconData(loc);
       }
 
       if (mounted) {
@@ -194,7 +197,7 @@ class _MapScreenState extends State<MapScreen> {
     return locations
         .where((loc) => loc.latitude != null && loc.longitude != null)
         .map((loc) {
-      final data = showLabels ? _markerData[loc.id] : _pinOnlyData;
+      final data = showLabels ? _markerData[loc.name] : _pinOnlyData;
       
       return Marker(
         markerId: MarkerId(loc.id),
@@ -207,11 +210,87 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _navigateToDetails(BuildContext context, AppState appState, ParkingLocation loc) {
-    appState.setLocation(loc);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const ChooseSpotScreen(),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => GlassContainer(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppTheme.textPrimary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(loc.name,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(loc.address, style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('₱${loc.pricePerHour.toStringAsFixed(0)}/hr', style: const TextStyle(color: AppTheme.brandGreen, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('${loc.availableSpots} ${loc.availableSpots == 1 ? 'spot' : 'spots'} available', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: GlassButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      appState.setLocation(loc);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ChooseSpotScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text('Check Availability'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: GlassButton(
+                    variant: GlassButtonVariant.ghost,
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}');
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    child: const Text('Get Directions'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -219,7 +298,8 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final locations = MockData.parkingLocations;
+    final appState = context.watch<AppState>();
+    final locations = appState.filteredLocations;
 
     return DynamicMeshBackground(
       child: SafeArea(
@@ -276,7 +356,7 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 100),
+            const SizedBox(height: 120),
           ],
         ),
       ),
