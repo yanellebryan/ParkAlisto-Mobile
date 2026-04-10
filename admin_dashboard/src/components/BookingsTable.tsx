@@ -179,14 +179,24 @@ export default function BookingsTable() {
         </div>
         {isActiveTable && (
           <div className="header-right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {/* QR Scan button */}
+            {/* Entry QR Scan button */}
             <button
               className="btn-scan-qr"
               onClick={() => window.open('/scanner', '_blank')}
-              title="Open QR Scanner in a new tab"
+              title="Open Entry QR Scanner in a new tab"
             >
               <span>📷</span>
-              <span>Scan QR</span>
+              <span>Entry QR</span>
+            </button>
+            {/* Exit QR Scan button */}
+            <button
+              className="btn-scan-qr"
+              onClick={() => window.open('/exit-scanner', '_blank')}
+              title="Open Exit QR Scanner in a new tab"
+              style={{ background: 'linear-gradient(135deg, #16a34a, #22c55e)', color: '#fff' }}
+            >
+              <span>🚪</span>
+              <span>Exit QR</span>
             </button>
             <div className="search-box">
               <span className="search-icon">🔍</span>

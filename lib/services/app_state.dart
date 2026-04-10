@@ -21,6 +21,7 @@ class AppState extends ChangeNotifier {
   List<Booking> myBookings = [];
   int bottomNavIndex = 0;
   PaymentMethod? selectedPaymentMethod;
+  Booking? lastCompletedBooking; // Tracks the booking that just finished
 
   List<PaymentMethod> paymentMethods = [];
   bool autoSelectLastUsed = true;
@@ -166,14 +167,36 @@ class AppState extends ChangeNotifier {
 
   // ── Load user bookings ────────────────────────────────────
   Future<void> loadBookings() async {
-    if (!_supabase.isLoggedIn) return; // Don't overwrite local list if not logged in
+    if (!_supabase.isLoggedIn) return;
 
     try {
+      // Remember the ID of the currently active/parked booking to detect transition
+      final activeId = activeCheckedInBooking?.id;
+
       myBookings = await _supabase.getMyBookings();
+
+      // If we had an active booking, check if it just became 'completed'
+      if (activeId != null) {
+        try {
+          final updated = myBookings.firstWhere((b) => b.id == activeId);
+          if (updated.status == 'completed') {
+            lastCompletedBooking = updated;
+            AppLogger.info('AppState: Detected exit completion for $activeId');
+          }
+        } catch (_) {
+          // Not found or filtered out
+        }
+      }
+
       notifyListeners();
     } catch (e) {
       AppLogger.error('Error loading bookings', e);
     }
+  }
+
+  void clearLastCompletedBooking() {
+    lastCompletedBooking = null;
+    notifyListeners();
   }
 
   // ── Load payment methods ──────────────────────────────────

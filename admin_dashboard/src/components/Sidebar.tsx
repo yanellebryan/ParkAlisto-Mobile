@@ -15,6 +15,8 @@ export default function Sidebar() {
     { href: '/', label: 'Dashboard', icon: '⊞' },
     { href: '/reservations', label: 'Reservations', icon: '📅' },
     { href: '/users', label: 'Users', icon: '👥' },
+    { href: '/scanner', label: 'Entry Pass', icon: '🔍' },
+    { href: '/exit-scanner', label: 'Exit Pass', icon: '🚪' },
     { href: '/settings', label: 'Settings', icon: '⚙️' },
   ];
 

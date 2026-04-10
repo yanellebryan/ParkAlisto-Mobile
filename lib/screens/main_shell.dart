@@ -7,9 +7,49 @@ import 'home_screen.dart';
 import 'map_screen.dart';
 import 'my_bookings_screen.dart';
 import 'account_screen.dart';
+import 'exit_success_screen.dart';
 
-class MainShell extends StatelessWidget {
+class MainShell extends StatefulWidget {
   const MainShell({Key? key}) : super(key: key);
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  @override
+  void initState() {
+    super.initState();
+    // Start listening to AppState for global events like exit completion
+    context.read<AppState>().addListener(_onAppStateChanged);
+  }
+
+  @override
+  void dispose() {
+    // Clean up listener
+    // Note: In some provider setups, the notifier might be disposed before the listener
+    // but usually this is safe if the notifier is provided at a higher level.
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    if (!mounted) return;
+    
+    final appState = context.read<AppState>();
+    
+    // Check if there's a booking that just finished
+    if (appState.lastCompletedBooking != null) {
+      final booking = appState.lastCompletedBooking!;
+      
+      // Navigate to success screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ExitSuccessScreen(booking: booking),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
