@@ -8,7 +8,7 @@ export default function LiveMap({
   onSpotSelect 
 }: { 
   selectedSpotId?: string, 
-  onSpotSelect?: (id: string, label: string) => void 
+  onSpotSelect?: (id: string, label: string, locationId: string) => void 
 }) {
   const [spots, setSpots] = useState<any[]>([]);
   const [floor, setFloor] = useState(0); // 0, 1, 2 for Floor 1, 2, 3
@@ -150,7 +150,7 @@ export default function LiveMap({
         title={`Row ${spot.row_letter} - Spot ${spot.spot_number}`}
         onClick={() => {
           if (!isOccupied && onSpotSelect) {
-            onSpotSelect(spot.id, spot.label || `${spot.row_letter}${spot.spot_number}`);
+            onSpotSelect(spot.id, spot.label || `${spot.row_letter}${spot.spot_number}`, spot.location_id);
           }
         }}
         style={{ cursor: isOccupied ? 'not-allowed' : 'pointer' }}

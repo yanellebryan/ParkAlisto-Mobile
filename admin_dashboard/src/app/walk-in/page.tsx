@@ -13,6 +13,7 @@ export default function WalkInBookingPage() {
   const [loading, setLoading] = useState(false);
   const [selectedSpotId, setSelectedSpotId] = useState('');
   const [selectedSpotLabel, setSelectedSpotLabel] = useState('');
+  const [selectedLocationId, setSelectedLocationId] = useState('');
   const [duration, setDuration] = useState(1);
   const [plateNumber, setPlateNumber] = useState('');
   const [createdBooking, setCreatedBooking] = useState<any>(null);
@@ -28,15 +29,16 @@ export default function WalkInBookingPage() {
     }
   }, [router]);
 
-  const handleSpotSelect = (id: string, label: string) => {
+  const handleSpotSelect = (id: string, label: string, locationId: string) => {
     setSelectedSpotId(id);
     setSelectedSpotLabel(label);
+    setSelectedLocationId(locationId);
   };
 
   const generateBookingCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = 'WI-';
-    for (let i = 0; i < 4; i++) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'PRK-';
+    for (let i = 0; i < 6; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
@@ -59,13 +61,16 @@ export default function WalkInBookingPage() {
         .insert([{
           booking_code: bookingCode,
           spot_id: selectedSpotId,
+          location_id: selectedLocationId,
           status: 'active',
           arrival_time: arrivalTime,
           duration_hours: duration,
           total_price: totalAmount,
           payment_method: 'Cash (Walk-in)',
-          booking_type: 'walk-in', // New column
-          created_at: new Date().toISOString()
+          booking_type: 'walk-in',
+          created_at: new Date().toISOString(),
+          checked_in: true,
+          checked_in_at: new Date().toISOString(),
         }])
         .select('*, parking_spots(floor)')
         .single();
@@ -213,7 +218,25 @@ export default function WalkInBookingPage() {
             <section className="glass p-6 text-center" style={{ padding: '3rem', textAlign: 'center', maxWidth: '500px', margin: '0 auto' }}>
               <div className="success-icon" style={{ fontSize: '4rem', color: '#16a34a', marginBottom: '1rem' }}>✅</div>
               <h2 style={{ marginBottom: '0.5rem' }}>Receipt Ready!</h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Manual booking for {selectedSpotLabel} is now active.</p>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Manual booking for {selectedSpotLabel} is now active.</p>
+              
+              <div className="qr-preview glass" style={{ 
+                background: '#fff', 
+                padding: '16px', 
+                borderRadius: '16px', 
+                display: 'inline-block', 
+                marginBottom: '2rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+              }}>
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${createdBooking.booking_code}`} 
+                  alt="QR Preview" 
+                  style={{ width: '120px', height: '120px' }}
+                />
+                <div style={{ marginTop: '8px', fontWeight: '800', color: 'var(--primary-deep)', letterSpacing: '2px' }}>
+                  {createdBooking.booking_code}
+                </div>
+              </div>
               
               <div className="actions" style={{ display: 'flex', gap: '1rem' }}>
                 <button 
@@ -224,7 +247,7 @@ export default function WalkInBookingPage() {
                   🖨️ Print Receipt
                 </button>
                 <button 
-                  onClick={() => { setCreatedBooking(null); setSelectedSpotId(''); setSelectedSpotLabel(''); setPlateNumber(''); }} 
+                  onClick={() => { setCreatedBooking(null); setSelectedSpotId(''); setSelectedSpotLabel(''); setSelectedLocationId(''); setPlateNumber(''); }} 
                   className="btn btn-outline" 
                   style={{ flex: 1, padding: '14px', borderRadius: '12px' }}
                 >
