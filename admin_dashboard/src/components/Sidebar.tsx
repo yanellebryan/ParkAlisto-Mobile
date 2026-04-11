@@ -14,6 +14,7 @@ export default function Sidebar() {
   const navItems = [
     { href: '/', label: 'Dashboard', icon: '⊞' },
     { href: '/reservations', label: 'Reservations', icon: '📅' },
+    { href: '/walk-in', label: 'Walk-in Booking', icon: '🎟️' },
     { href: '/users', label: 'Users', icon: '👥' },
     { href: '/scanner', label: 'Entry Pass', icon: '🔍' },
     { href: '/exit-scanner', label: 'Exit Pass', icon: '🚪' },

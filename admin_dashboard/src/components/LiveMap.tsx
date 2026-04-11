@@ -3,7 +3,13 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import './components.css';
 
-export default function LiveMap() {
+export default function LiveMap({ 
+  selectedSpotId, 
+  onSpotSelect 
+}: { 
+  selectedSpotId?: string, 
+  onSpotSelect?: (id: string, label: string) => void 
+}) {
   const [spots, setSpots] = useState<any[]>([]);
   const [floor, setFloor] = useState(0); // 0, 1, 2 for Floor 1, 2, 3
   const [loading, setLoading] = useState(true);
@@ -134,13 +140,23 @@ export default function LiveMap() {
   // Helper to render a spot
   const renderSpot = (spot: any) => {
     if (!spot) return <div className="usls-spot" style={{ visibility: 'hidden' }}></div>;
+    const isSelected = selectedSpotId === spot.id;
+    const isOccupied = spot.status === 'occupied';
+
     return (
       <div 
         key={spot.id} 
-        className={`spot-card usls-spot ${spot.status === 'occupied' ? 'spot-occupied' : 'spot-free'}`}
+        className={`spot-card usls-spot ${isOccupied ? 'spot-occupied' : 'spot-free'} ${isSelected ? 'spot-selected' : ''}`}
         title={`Row ${spot.row_letter} - Spot ${spot.spot_number}`}
+        onClick={() => {
+          if (!isOccupied && onSpotSelect) {
+            onSpotSelect(spot.id, spot.label || `${spot.row_letter}${spot.spot_number}`);
+          }
+        }}
+        style={{ cursor: isOccupied ? 'not-allowed' : 'pointer' }}
       >
         <span className="spot-name">{spot.label || `${spot.row_letter}${spot.spot_number}`}</span>
+        {isSelected && <div className="selection-indicator">✓</div>}
       </div>
     );
   };

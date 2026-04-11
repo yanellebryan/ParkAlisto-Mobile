@@ -92,6 +92,15 @@ export default function BookingsTable() {
       }
       if (data && data.length > 0) {
         console.log('Completed:', data[0]);
+        // Release the spot status
+        const spotId = data[0].spot_id;
+        if (spotId) {
+          const { error: spotError } = await supabase
+            .from('parking_spots')
+            .update({ status: 'available' })
+            .eq('id', spotId);
+          if (spotError) console.error('Failed to free spot on manual confirm:', spotError);
+        }
       }
       setTimeout(fetchBookings, 500);
     } catch (err) {
@@ -223,6 +232,7 @@ export default function BookingsTable() {
               <th>Arrival Time</th>
               {isActiveTable && <th>Expires At</th>}
               <th>Duration</th>
+              <th>Source</th>
               <th style={{ textAlign: 'right' }}>Amount</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
@@ -290,15 +300,15 @@ export default function BookingsTable() {
                     }}>
                       {b.arrival_time
                         ? new Date(b.arrival_time).toLocaleTimeString('en-PH', {
-                            hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Manila'
-                          })
+                          hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Manila'
+                        })
                         : 'Not set'}
                     </div>
                     <div className="sub-date" style={{ fontSize: '0.75rem', opacity: 0.6 }}>
                       {b.arrival_time
                         ? new Date(b.arrival_time).toLocaleDateString('en-PH', {
-                            month: 'short', day: 'numeric', timeZone: 'Asia/Manila'
-                          })
+                          month: 'short', day: 'numeric', timeZone: 'Asia/Manila'
+                        })
                         : ''}
                     </div>
                   </td>
@@ -314,6 +324,12 @@ export default function BookingsTable() {
 
                   <td className="duration-display">
                     <span className="duration-tag">{b.duration_hours}h</span>
+                  </td>
+
+                  <td>
+                    <span className={`source-pill ${b.booking_type || 'online'}`}>
+                      {(b.booking_type || 'online').toUpperCase()}
+                    </span>
                   </td>
 
                   <td className="amount-cell">

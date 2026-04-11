@@ -167,6 +167,33 @@
   background: #E5352A; /* slightly deeper red hover */
 }
 
+.spot-selected {
+  border: 3px solid var(--primary) !important;
+  background: var(--primary-glow) !important;
+  color: var(--primary-deep) !important;
+  transform: scale(1.05);
+  box-shadow: 0 0 15px var(--primary-glow);
+  position: relative;
+}
+
+.selection-indicator {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--primary);
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
 /* USLS Specific Layout */
 .usls-layout-container {
   display: flex;
@@ -501,6 +528,29 @@
 .status-pill.completed { background: rgba(0, 122, 255, 0.1); color: #007AFF; }
 .status-pill.cancelled { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
 .status-pill.pending { background: rgba(255, 149, 0, 0.1); color: #FF9500; }
+
+/* Source Pill */
+.source-pill {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.source-pill.online {
+  background: rgba(0, 122, 255, 0.05);
+  color: #007AFF;
+  border: 1px solid rgba(0, 122, 255, 0.1);
+}
+
+.source-pill.walk-in {
+  background: rgba(88, 86, 214, 0.1);
+  color: #5856D6;
+  border: 1px solid rgba(88, 86, 214, 0.2);
+}
 
 .mini-pulse {
   width: 6px;
