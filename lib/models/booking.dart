@@ -17,12 +17,17 @@ class Booking {
 
   double get totalPrice => location.pricePerHour * durationHours;
 
-  /// The booking window end time (arrival_time + duration) or null if not set
+  /// The booking window end time.
+  /// If checked in, it expires [durationHours] after actual check-in.
+  /// If not checked in, it expires [durationHours] after scheduled arrival.
   DateTime? get expiresAt {
+    if (checkedIn && checkedInAt != null) {
+      return checkedInAt!.add(Duration(hours: durationHours));
+    }
     if (arrivalTime != null) {
       return arrivalTime!.add(Duration(hours: durationHours));
     }
-    return dateTime.add(Duration(hours: durationHours + 2));
+    return dateTime.add(Duration(hours: durationHours));
   }
 
   bool get isExpired {

@@ -28,6 +28,8 @@ export default function ScannerPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [cameraSupported, setCameraSupported] = useState<boolean | null>(null);
   const [cameraError, setCameraError] = useState('');
+  const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
 
   const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<any>(null);
@@ -75,55 +77,88 @@ export default function ScannerPage() {
         const { Html5Qrcode } = await import('html5-qrcode');
         if (cancelled || !scannerRef.current) return;
 
-        const scanner = new Html5Qrcode('qr-scan-viewport');
-        html5QrCodeRef.current = scanner;
+        // Initialize scanner if not already there
+        if (!html5QrCodeRef.current) {
+          html5QrCodeRef.current = new Html5Qrcode('qr-scan-viewport');
+        }
+        const scanner = html5QrCodeRef.current;
 
-        // Try environment camera first (good for mobile)
+        // Fetch cameras if we don't have them yet
+        let availableCameras = cameras;
+        if (availableCameras.length === 0) {
+          try {
+            const devices = await Html5Qrcode.getCameras();
+            if (devices && devices.length > 0) {
+              setCameras(devices);
+              availableCameras = devices;
+              if (!selectedCameraId) {
+                // Try to find environment camera by default, else use first one
+                const env = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
+                setSelectedCameraId(env ? env.id : devices[0].id);
+              }
+            }
+          } catch (camErr) {
+            console.warn("Failed to list cameras", camErr);
+          }
+        }
+
+        // Determine target camera
+        // If we have a selected ID, use it. Otherwise try facingMode environment.
+        const cameraConfig = selectedCameraId 
+          ? selectedCameraId 
+          : { facingMode: 'environment' };
+
         try {
           await scanner.start(
-            { facingMode: 'environment' },
+            cameraConfig,
             { fps: 10, qrbox: { width: 240, height: 240 } },
             async (decoded: string) => {
               await stopCamera();
               const trimmed = decoded.trim().toUpperCase();
               await lookupBooking(trimmed);
             },
-            () => { } // per-frame errors — ignore
+            () => { }
           );
-        } catch (envError: any) {
+          if (!cancelled) {
+            scannerStartedRef.current = true;
+            setCameraError('');
+            setCameraSupported(true);
+          }
+        } catch (startErr: any) {
           if (cancelled) return;
-          // Fall back to the first available camera (webcams)
-          const cameras = await Html5Qrcode.getCameras();
-          if (cameras && cameras.length > 0) {
+          // If environment failed and we haven't tried ID yet, try fallback to first camera
+          if (!selectedCameraId && availableCameras.length > 0) {
             await scanner.start(
-              cameras[0].id,
+              availableCameras[0].id,
               { fps: 10, qrbox: { width: 240, height: 240 } },
               async (decoded: string) => {
                 await stopCamera();
-                const trimmed = decoded.trim().toUpperCase();
-                await lookupBooking(trimmed);
+                await lookupBooking(decoded.trim().toUpperCase());
               },
               () => { }
             );
+            if (!cancelled) {
+              scannerStartedRef.current = true;
+              setSelectedCameraId(availableCameras[0].id);
+              setCameraError('');
+            }
           } else {
-            throw envError; // No cameras found, throw original error
+            throw startErr;
           }
-        }
-
-        if (!cancelled) {
-          scannerStartedRef.current = true;
-          setCameraError('');
         }
       } catch (err: any) {
         if (cancelled) return;
         const msg = err?.message || String(err);
         const isNoCamera = msg.includes('NotFound') || msg.includes('not found') || msg.includes('Requested device');
-        setCameraError(isNoCamera
-          ? 'No camera found on this device. Use manual entry below.'
-          : `Camera error: ${msg}`
+        const isPermission = msg.includes('NotAllowed') || msg.includes('permission');
+        
+        setCameraError(isPermission 
+          ? 'Camera permission denied. Please allow camera access in your browser settings.'
+          : isNoCamera 
+            ? 'No camera found on this device. Use manual entry below.'
+            : `Camera error: ${msg}`
         );
-        setCameraSupported(isNoCamera ? false : cameraSupported);
-        // Fall back to manual
+        if (isNoCamera) setCameraSupported(false);
         setMode('manual');
       }
     };
@@ -135,7 +170,7 @@ export default function ScannerPage() {
       stopCamera();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, selectedCameraId]);
 
   // ── Lookup booking by code ────────────────────────────────
   const lookupBooking = async (code: string) => {
@@ -283,6 +318,22 @@ export default function ScannerPage() {
           {/* ── Camera mode ────────────────────────────── */}
           {mode === 'camera' && (scanState === 'idle' || scanState === 'scanning') && (
             <div className="qr-camera-wrapper">
+              {cameras.length > 1 && (
+                <div className="qr-camera-controls">
+                  <select 
+                    className="qr-camera-select"
+                    value={selectedCameraId}
+                    onChange={(e) => {
+                      stopCamera();
+                      setSelectedCameraId(e.target.value);
+                    }}
+                  >
+                    {cameras.map(cam => (
+                      <option key={cam.id} value={cam.id}>{cam.label || `Camera ${cam.id.slice(0,5)}`}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div id="qr-scan-viewport" ref={scannerRef} className="qr-reader-box" />
               <p className="qr-hint">Point the webcam at the user&apos;s QR code</p>
             </div>

@@ -283,7 +283,8 @@ class AppState extends ChangeNotifier {
           createdBooking = await _supabase.createBooking(
             locationId: selectedLocation!.id,
             spotId: selectedSpot!.id,
-            startTime: start,
+            startTime: DateTime.now(), // When the booking was created
+            arrivalTime: start,        // The user's intended arrival time
             durationHours: durationHours,
             totalPrice: selectedLocation!.pricePerHour * durationHours,
             paymentMethod: selectedPaymentMethod?.name ?? 'Cash',
