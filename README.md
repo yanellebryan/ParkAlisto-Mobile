@@ -1,96 +1,182 @@
-# 🅿️ ParkAlisto Mobile
+<div align="center">
+  <img src="assets/readme/logo.png" alt="ParkAlisto Logo" width="120" />
+  <h1 align="center">ParkAlisto Mobile</h1>
+  <p align="center">
+    <strong>A Modern, Liquid Glass Smart Parking Reservation & Management System</strong>
+  </p>
 
-A modern, beautifully designed **smart parking reservation app** built with Flutter. ParkAlisto helps users find, compare, and book parking spots in real time — featuring an Apple-inspired **Liquid Glass UI** design system with frosted glass effects and dynamic animations.
+  <p align="center">
+    <img src="https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white" alt="Flutter" />
+    <img src="https://img.shields.io/badge/Dart-%230175C2.svg?style=for-the-badge&logo=Dart&logoColor=white" alt="Dart" />
+    <img src="https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" />
+    <img src="https://img.shields.io/badge/TypeScript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+    <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+  </p>
+
+  <p align="center">
+    <a href="#-key-features">Features</a> •
+    <a href="#-showcase">Showcase</a> •
+    <a href="#-tech-stack">Tech Stack</a> •
+    <a href="#-getting-started">Getting Started</a>
+  </p>
+</div>
 
 ---
 
-## ✨ Features
+## 💡 Project Overview
 
-- **Smart Parking Search** — Browse nearby parking locations with real-time availability
-- **Interactive Spot Selection** — Visual parking grid to choose your preferred spot
-- **Booking Management** — View, track, and manage all your reservations
-- **Interactive Map** — Explore parking locations on an integrated map view
-- **Onboarding Flow** — Smooth first-time user experience
-- **Account Management** — User profile and settings
+**ParkAlisto** is an end-to-end smart parking platform designed to streamline the reservation, management, and verification of parking spaces in real-time. Built with an Apple-inspired **Liquid Glass UI** design system, it bridges the gap between drivers seeking seamless parking and administrators requiring complete operational visibility. 
 
-## 🎨 Design System
+The ecosystem consists of two primary modules:
+1. **ParkAlisto Mobile Client**: A stunning cross-platform Flutter app for user bookings, spot selection, and navigation.
+2. **ParkAlisto Admin Dashboard**: A robust, responsive Next.js web portal for parking administrators to track real-time occupancy, manage walk-in reservations, and scan entry/exit tickets.
 
-ParkAlisto uses an **Apple Liquid Glass UI** design language featuring:
+---
 
-- Frosted glass containers with blur effects and translucency
-- Dynamic mesh gradient backgrounds
-- Smooth micro-animations and transitions
-- Light theme with brand green (`#2E7D32`) accent color
-- Google Fonts typography (Outfit)
+## 🖼️ Showcase
 
-## 🏗️ Project Structure
+### 📱 Modern Mobile Experience
+Explore the stunning frosted-glass aesthetic and intuitive workflow crafted for drivers on the go.
 
-```
-lib/
-├── main.dart                  # App entry point
-├── theme.dart                 # Global theme & design tokens
-├── models/
-│   ├── booking.dart           # Booking data model
-│   ├── parking_location.dart  # Parking location model
-│   └── parking_spot.dart      # Individual spot model
-├── screens/
-│   ├── home_screen.dart       # Main dashboard with search
-│   ├── choose_spot_screen.dart# Spot selection grid
-│   ├── booking_success_screen.dart
-│   ├── my_bookings_screen.dart
-│   ├── map_screen.dart        # Interactive parking map
-│   ├── account_screen.dart    # User profile & settings
-│   ├── onboarding_screen.dart # First-time user flow
-│   └── main_shell.dart        # Bottom navigation shell
-├── services/
-│   ├── app_state.dart         # Provider state management
-│   └── mock_data.dart         # Sample data for development
-└── widgets/
-    ├── glass_container.dart    # Frosted glass card widget
-    ├── glass_button.dart       # Glassmorphic button
-    ├── dynamic_mesh_background.dart # Animated gradient bg
-    └── car_placeholder.dart    # Vehicle illustration widget
-```
+<div align="center">
+  <img src="assets/readme/mobile_ui.png" alt="Mobile UI Showcase" width="85%" style="border-radius: 10px;" />
+</div>
+
+<br />
+
+### 🖥️ Robust Administration
+Manage and monitor parking zones with advanced real-time reservation lists and automated scanning tools.
+
+<div align="center">
+  <img src="assets/readme/reservation_management.png" alt="Reservation Management Showcase" width="85%" style="border-radius: 10px;" />
+  <br/><br/>
+  <img src="assets/readme/parking_admin.png" alt="Parking Admin Showcase" width="85%" style="border-radius: 10px;" />
+</div>
+
+---
+
+## ✨ Key Features
+
+### 📱 Mobile App (Flutter & Supabase)
+*   **🎯 Smart Parking Search**: Browse and discover nearby parking locations with instantly updated spot availability.
+*   **🗺️ Interactive Live Map**: Visualize nearby parking zones on a fully integrated, fluid map interface.
+*   **🪟 Visual Spot Selection**: A clean, interactive parking grid allows users to select and secure their preferred spots with absolute precision.
+*   **🎟️ Real-Time Booking**: Hassle-free reservation workflows supported by instant verification tickets.
+*   **🌊 Liquid Glass UI**: A visually rich experience leveraging smooth mesh gradients, frosted glass containers, and subtle micro-animations.
+*   **👤 Secure Account Management**: Effortlessly manage personal user profiles, ride details, and booking history.
+
+### 🖥️ Admin Web Portal (Next.js & Tailwind)
+*   **📊 Real-Time Analytics**: Monitor current occupancy rates, peak usage times, and location health from a comprehensive dashboard.
+*   **📝 Reservation Lifecycle Control**: Review, search, and manually modify customer reservations instantly.
+*   **📥 Walk-In Entry Management**: Facilitate seamless entry for vehicles without prior online reservations directly on-site.
+*   **🔍 Entrance & Exit Scanners**: Built-in scanning mechanisms to audit QR codes for secure validations at gates.
+*   **⚙️ Dynamic Configurations**: Configure operating hours, pricing algorithms, and capacity per zone dynamically.
+
+---
+
+## 🎨 Apple Liquid Glass Design System
+
+ParkAlisto delivers a premium user experience prioritizing aesthetics and physics-based interactions:
+
+*   **✨ Translucency & Blur**: Deep backdrop-filter blur overlays create content depth and hierarchy.
+*   **🌈 Dynamic Mesh Gradients**: Smoothly shifting colorful nodes animate the background subtly, maintaining freshness.
+*   **🌿 Curated Color Palette**: Soft greys, light neutrals, and a refined Brand Green (`#2E7D32`) for semantic visual triggers.
+*   **✍️ Premium Typography**: Handcrafted type scaling using Google Fonts' **Outfit** family for ultra-crisp readability.
+
+---
 
 ## 🛠️ Tech Stack
 
-| Layer              | Technology                  |
-| ------------------ | --------------------------- |
-| **Framework**      | Flutter (Dart SDK ^3.10.7)  |
-| **State Management** | Provider                  |
-| **Backend**        | Supabase                    |
-| **Typography**     | Google Fonts (Outfit)       |
-| **Icons**          | Cupertino Icons             |
-| **Platforms**      | iOS, Android, Web, macOS, Linux, Windows |
+### 🏗️ Client Architecture
+*   **Core Framework**: Flutter (Dart SDK)
+*   **State Management**: Provider
+*   **Database Integration**: Supabase Real-Time
+*   **UI Components**: Custom Glassmorphic Widgets & Cupertino Icons
 
-## 🚀 Getting Started
-
-### Prerequisites
-
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (^3.10.7)
-- Dart SDK (bundled with Flutter)
-- Xcode (for iOS) / Android Studio (for Android)
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yanellebryan/ParkAlisto-Mobile.git
-cd ParkAlisto-Mobile
-
-# Install dependencies
-flutter pub get
-
-# Run the app
-flutter run
-```
-
-## 📄 License
-
-This project is private and not published to pub.dev.
+### 🌐 Web & Backend Architecture
+*   **Web Framework**: Next.js (App Router)
+*   **Language**: TypeScript
+*   **Styling**: TailwindCSS
+*   **Persistence**: PostgreSQL via Supabase Backend
 
 ---
 
-<p align="center">
-  Built with 💚 using Flutter
-</p>
+## 📂 Repository Structure
+
+```text
+ParkAlisto-Mobile/
+├── admin_dashboard/             # 🖥️ Next.js Administrative Web Portal
+│   ├── src/app/
+│   │   ├── reservations/        # Reservation manager
+│   │   ├── scanner/             # Live code scanner page
+│   │   ├── exit-scanner/        # Check-out auditor page
+│   │   └── walk-in/             # On-site booking UI
+├── lib/                         # 📱 Flutter Mobile Application
+│   ├── screens/
+│   │   ├── home_screen.dart     # Dashboard & search
+│   │   ├── choose_spot_screen.dart # Interactive grid
+│   │   └── map_screen.dart      # Integrated map view
+│   ├── services/
+│   │   └── app_state.dart       # Global reactive state
+│   └── widgets/                 
+│       ├── glass_container.dart # Liquid Glass reusable card
+│       └── dynamic_mesh_background.dart # Custom-painter animated background
+├── assets/
+│   ├── readme/                  # Repository documentation assets
+│   └── icons/                   # Production app brand iconography
+```
+
+---
+
+## 🚀 Getting Started
+
+Follow the guides below to run each component of the ParkAlisto ecosystem.
+
+### 📱 Setting Up the Flutter Mobile App
+
+#### Prerequisites
+*   [Flutter SDK](https://docs.flutter.dev/get-started/install) (Tested on ^3.10.7)
+*   Android Studio / Xcode (For device emulation)
+
+#### Steps
+```bash
+# 1. Navigate into root folder
+cd ParkAlisto-Mobile
+
+# 2. Fetch Flutter Dependencies
+flutter pub get
+
+# 3. Run on Emulator / Physical Device
+flutter run
+```
+
+### 🖥️ Setting Up the Admin Dashboard
+
+#### Prerequisites
+*   [Node.js](https://nodejs.org/) (v18+ Recommended)
+*   npm / yarn / pnpm
+
+#### Steps
+```bash
+# 1. Navigate to the Dashboard subfolder
+cd admin_dashboard
+
+# 2. Install Node Dependencies
+npm install
+
+# 3. Run Local Development Server
+npm run dev
+```
+Once started, open **[http://localhost:3000](http://localhost:3000)** to explore the live portal.
+
+---
+
+## 🔑 Environment Setup
+
+Both applications depend on an active Supabase project. Ensure you have executed the migration scripts located in the repository root (`supabase_migrations.sql`, `enable_realtime.sql`) into your Supabase SQL editor to bootstrap the necessary PostgreSQL tables, foreign keys, and real-time publication configurations.
+
+---
+
+<div align="center">
+  <p>Developed with 💚 by <strong><a href="https://github.com/yanellebryan">Yanelle Bryan</a></strong></p>
+</div>
